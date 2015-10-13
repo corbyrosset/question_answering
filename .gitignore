@@ -1,0 +1,5 @@
+# Ignore data
+data/*
+
+# Ignoring compiled object file
+*.pyc
