@@ -46,17 +46,19 @@ def process_story(story):
 def stories_to_pandas(stories, process=process_story,
                       scol_names = ['line_id', 'statement'],
                       qcol_names=['line_id','query', 'answer', 'support_line']):
-    Statements = pd.DataFrame()
-    Queries = pd.DataFrame()
+    statements = []
+    queries = []
     for i, story in enumerate(stories):
         s, q = process(story)
         s = pd.DataFrame(s, columns=scol_names)
         q = pd.DataFrame(q, columns=qcol_names)
         s['story_id'] = i
         q['story_id'] = i
-        Statements = pd.concat((Statements, s))
-        Queries = pd.concat((Queries, q))
-    return Statements.reset_index(drop=True), Queries.reset_index(drop=True)
+        statements.append(s)
+        queries.append(q)
+    Statements = pd.concat(statements).reset_index(drop=True)
+    Queries = pd.concat(queries).reset_index(drop=True)
+    return Statements, Queries
 
 
 ## Example usage
