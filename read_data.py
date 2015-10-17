@@ -73,7 +73,7 @@ def generate_examples(Statements, Queries):
             answer = q.answer
             hint = [q.support_line]
             # TODO: generalize to multiple support lines
-            examples.append(example(statements, question, answer, hint))
+            examples.append(example.example(statements, question, answer, hint))
 
 
 # Example usage
