@@ -71,9 +71,8 @@ def generate_examples(Statements, Queries):
             statements = ss[ss.line_id < q.line_id].statement.values
             question = q.query
             answer = q.answer
-            hint = [q.support_line]
-            # TODO: generalize to multiple support lines
-            examples.append(example.example(statements, question, answer, hint))
+            hints = map(int, q.support_line.split())
+            examples.append(example.example(statements, question, answer, hints))
 
 
 # Example usage
