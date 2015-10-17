@@ -9,6 +9,7 @@
 # story_id query answer support_line
 
 import pandas as pd
+import example
 
 
 # Reads in a file expecting a sequence of numbered sentences
@@ -44,8 +45,8 @@ def process_story(story):
 # Given a list of stories, stories_to_pandas aggregates all of the story
 # informations into a one large dataframe for the statements and the questions
 def stories_to_pandas(stories, process=process_story,
-                      scol_names = ['line_id', 'statement'],
-                      qcol_names=['line_id','query', 'answer', 'support_line']):
+                      scol_names=['line_id', 'statement'],
+                      qcol_names=['line_id', 'query', 'answer', 'support_line']):
     statements = []
     queries = []
     for i, story in enumerate(stories):
@@ -61,7 +62,21 @@ def stories_to_pandas(stories, process=process_story,
     return Statements, Queries
 
 
-## Example usage
+def generate_examples(Statements, Queries):
+    examples = []
+    for story_id in xrange(max(Statements.story_id)):
+        ss = Statements[Statements.story_id == story_id]
+        qs = Queries[Queries.story_id == story_id]
+        for _, q in qs.iterrows():
+            statements = ss[ss.line_id < q.line_id].statement.values
+            question = q.query
+            answer = q.answer
+            hint = [q.support_line]
+            # TODO: generalize to multiple support lines
+            examples.append(example(statements, question, answer, hint))
+
+
+# Example usage
 #
 # stories = find_stories('qa1_single-supporting-fact_train.txt')
 # statements, queries = stories_to_pandas(stories)
