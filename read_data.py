@@ -82,10 +82,13 @@ def generate_examples(Statements, Queries):
 # statements and queries will be pandas dataframes with columns that correspond
 # to the relevant information
 # Hardcoded to load the first dataset
-task_examples = []
-for i in xrange(1, 2): # will change the upper one to 21 when the other datafiles are loaded
-    filestump = 'qa%d_*train.txt' % i
-    stories = find_stories(glob.glob(filestump)[0])
-    statements, queries = stories_to_pandas(stories)
-    examples = generate_examples(statements, queries)
-    task_examples.append(examples)
+def get_task_examples():
+    task_examples = []
+    for i in xrange(1, 2): # will change the upper one to 21 when the other datafiles are loaded
+        filestump = 'qa%d_*train.txt' % i
+        stories = find_stories(glob.glob(filestump)[0])
+        statements, queries = stories_to_pandas(stories)
+        examples = generate_examples(statements, queries)
+        task_examples.append(examples)
+    return task_examples
+
