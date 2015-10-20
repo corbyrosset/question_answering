@@ -30,10 +30,9 @@ def getdata(file):
         if sentence[-1] == "?":
             question = sentence
             answer = split[1]
-            hint = int(split[2])
-            questans.append({"q": question, "a": answer, "h": hint, "s": list(information)})
+            # hint = int(split[2])
+            questans.append({"q": question, "a": answer, "s": list(information)})
         else:
             information.append(sentence)
     return questans
-
 

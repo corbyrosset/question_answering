@@ -3,3 +3,9 @@ data/*
 
 # Ignoring compiled object file
 *.pyc
+
+# This annoying mac thing
+.DS_Store
+
+# Ignore random notebook stuff
+.ipynb_checkpoints/*
