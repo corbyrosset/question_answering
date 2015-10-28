@@ -37,6 +37,7 @@ def fix_directions(examples):
 # 7 Fred is in the cinema.
 # 8 Julie is either in the kitchen or the bedroom.
 # 9 Is Julie in the bedroom? 	maybe	8
+@util.memoize
 def file_to_examples(file):
     f = open(file, "r")
     lines = f.readlines()
@@ -70,6 +71,7 @@ def file_to_examples(file):
     return questans
 
 # Returns (train_examples, test_examples)
+@util.memoize
 def get_data(datadir, tasknum):
     if tasknum == 1:
         train_examples = file_to_examples(datadir+"qa1_single-supporting-fact_train.txt")
@@ -112,5 +114,3 @@ def load_glove_vectors(datadir, dimension):
                 print i
     print 'done'
     return wvecs
-
-
