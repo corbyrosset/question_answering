@@ -10,3 +10,6 @@ data/*.txt
 # Ignore random notebook stuff
 code/notebooks/.ipynb_checkpoints/*
 .ipynb_checkpoints/*
+
+# Ignore glove data
+data/glove/*.txt
