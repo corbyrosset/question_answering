@@ -1,1 +1,2 @@
-Use data_import.get_data(datadir, tasknum) to download.
+Use data_import.get_data(datadir, tasknum) to load data from the data directory. 
+The tasknum are hard coded to facebook BaBi dataset numbers..
