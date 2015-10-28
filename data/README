@@ -1,0 +1,13 @@
+Place the babi dataset files in this folder. Currently, there should be:
+
+qa1_single-supporting-fact_test.txt
+qa1_single-supporting-fact_train.txt
+qa5_three-arg-relations_test.txt
+qa5_three-arg-relations_train.txt
+qa7_counting_test.txt
+qa7_counting_train.txt
+qa17_positional-reasoning_test.txt
+qa17_positional-reasoning_train.txt
+qa19_path-finding_test.txt
+qa19_path-finding_train.txt
+
