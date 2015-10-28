@@ -54,11 +54,11 @@ def file_to_examples(file):
         if sentence[-1] == "?":
             question = sentence
             answer = split[1]
-            # hint = int(split[2])
+            hint = split[2]
             questans.append(example(sentences=list(information), \
                                     answer=answer, \
                                     question=question, \
-                                    hints=""))
+                                    hints=hint))
         else:
             information.append(sentence)
 
