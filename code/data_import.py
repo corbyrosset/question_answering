@@ -1,3 +1,6 @@
+from os
+import util
+
 class example(object):
     def __init__(self, sentences, question, answer, hints):
         '''
@@ -87,5 +90,25 @@ def get_data(datadir, tasknum):
     else:
         raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
     return (train_examples, test_examples)
+
+@util.memoize
+def load_glove_vectors(datadir, dimension):
+    if dimension not in [50, 100, 200, 300]:
+        raise NotImplementedError('No Glove Vectors with dimension %d' % dimension)
+    file_name = 'glove.6B.%dd.txt' % dimension
+    file_path = join(datadir, file_name)
+    wvecs = {}
+    print 'loading glove vectors'
+    sys.stdout.flush()
+    with open(file_path) as f_glove:
+        for i, line in enumerate(f_glove):
+            elems = line.split()
+            word = elems[0]
+            vec = np.array([float(x) for x in elems[1:]]).reshape(-1, 1)
+            wvecs[word] = vec
+            if i % 20000 == 0:
+                print i
+    print 'done'
+    return wvecs
 
 
