@@ -3,6 +3,23 @@ import util
 import sys
 import numpy as np
 
+class example_ind(object):
+    def __init__(self, sentences, question, answer, hints):
+        '''
+            Object which contains relevant information for inputting into the
+            model, but whose elements are integer indicies into a word vector 
+            matrix.
+        '''
+        self.sentences = sentences
+        self.question = question
+        self.answer = answer
+        self.hints = hints
+
+    def __repr__(self):
+        return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n" \
+                % (self.sentences, self.question, self.answer, self.hints))
+
+
 class example(object):
     def __init__(self, sentences, question, answer, hints):
         '''
