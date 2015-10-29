@@ -36,17 +36,11 @@ class example(object):
         return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n" \
                 % (self.sentences, self.question, self.answer, self.hints))
 
-
 class wordVectors(object):
     def __init__(self, dataset):
         self.words_to_idx, self.idx_to_word = self._map_words_to_idx(dataset)
 
     def _map_words_to_idx(self, dataset):
-
-        # first get a big list of all the tokens
-        def tokenize(sentence):
-            return re.findall(r"[\w']+|[.,!?;]", sentence)
-
         tokens = []
         for example in dataset:
             # add all supporting sentence words
@@ -81,6 +75,18 @@ class wordVectors(object):
                     self.wv_matrix[:, self.words_to_idx[word]] = pretrained[word].ravel()
 
         return self.wv_matrix
+
+# wordVectors is an instance of the output of wordVectors
+def examples_to_example_ind (wordVectors, examples):
+    outputs = []
+    for example in examples:
+        new_sents = [];
+        for sentence in example.sentences:
+            new_sents.append(np.array([wordVectors.words_to_idx[word] for word in tokenize(sentence)]))
+        new_quest = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.question)])
+        new_ans = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.answer)])
+        outputs.append(example_ind(new_sents, new_quest, new_ans, example.hints))
+    return outputs
 
 
 # Some of the answers aren't words eg: (n,s):
@@ -134,6 +140,9 @@ def file_to_examples(file):
             information.append(sentence)
 
     return questans
+
+def tokenize(sentence):
+    return [token.lower() for token in re.findall(r"[\w']+|[.,!?;]", sentence)]
 
 # Returns (train_examples, test_examples)
 @util.memoize
