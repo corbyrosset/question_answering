@@ -4,11 +4,12 @@ import sys
 import re
 import numpy as np
 
+
 class example_ind(object):
     def __init__(self, sentences, question, answer, hints):
         '''
             Object which contains relevant information for inputting into the
-            model, but whose elements are integer indicies into a word vector 
+            model, but whose elements are integer indicies into a word vector
             matrix.
         '''
         self.sentences = sentences
@@ -17,7 +18,7 @@ class example_ind(object):
         self.hints = hints
 
     def __repr__(self):
-        return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n" \
+        return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n"
                 % (self.sentences, self.question, self.answer, self.hints))
 
 
@@ -33,8 +34,9 @@ class example(object):
         self.hints = hints
 
     def __repr__(self):
-        return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n" \
+        return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n"
                 % (self.sentences, self.question, self.answer, self.hints))
+
 
 class wordVectors(object):
     def __init__(self, dataset):
@@ -66,7 +68,8 @@ class wordVectors(object):
         return words_to_idx, idx_to_words
 
     def get_wv_matrix(self, dimension, glove_dir=None):
-        self.wv_matrix = np.random.rand(dimension, len(self.words_to_idx))  # TODO: pick initialization carefully
+        r = 0.001
+        self.wv_matrix = np.random.rand(dimension, len(self.words_to_idx)) * 2 * r - r  # TODO: pick initialization carefully
         if glove_dir is not None:
             pretrained = load_glove_vectors(glove_dir, dimension)
 
@@ -76,15 +79,16 @@ class wordVectors(object):
 
         return self.wv_matrix
 
+
 # wordVectors is an instance of the output of wordVectors
-def examples_to_example_ind (wordVectors, examples):
+def examples_to_example_ind(wordVectors, examples):
     outputs = []
     for example in examples:
-        new_sents = [];
+        new_sents = []
         for sentence in example.sentences:
-            new_sents.append(np.array([wordVectors.words_to_idx[word] for word in tokenize(sentence)]))
-        new_quest = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.question)])
-        new_ans = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.answer)])
+            new_sents.append(np.array([wordVectors.words_to_idx[word] for word in tokenize(sentence)], dtype='int32'))
+        new_quest = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.question)], dtype='int32')
+        new_ans = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.answer)], dtype='int32')
         outputs.append(example_ind(new_sents, new_quest, new_ans, example.hints))
     return outputs
 
@@ -92,11 +96,12 @@ def examples_to_example_ind (wordVectors, examples):
 # Some of the answers aren't words eg: (n,s):
 # This replaces it with "north south"
 def fix_directions(examples):
-    directions = {'n':'north','e':'east','s':'south','w':'west'}
+    directions = {'n': 'north', 'e': 'east', 's': 'south', 'w': 'west'}
     for example in examples:
         dirs = example.answer.split(',')
         newdirs = [directions[d] for d in dirs]
         example.answer = " ".join(newdirs)
+
 
 # Each Set consists of several lines (eg:)
 # 1 Mary is in the park.
@@ -132,21 +137,21 @@ def file_to_examples(file):
             question = sentence
             answer = split[1]
             hint = split[2]
-            questans.append(example(sentences=list(information), \
-                                    answer=answer, \
-                                    question=question, \
+            questans.append(example(sentences=list(information),
+                                    answer=answer,
+                                    question=question,
                                     hints=hint))
         else:
             information.append(sentence)
 
     return questans
 
+
 def tokenize(sentence):
     return [token.lower() for token in re.findall(r"[\w']+|[.,!?;]", sentence)]
 
 # Returns (train_examples, test_examples)
-@util.memoize
-def get_data(datadir, tasknum):
+def get_data(datadir, tasknum, test=False):
     if tasknum == 1:
         train_examples = file_to_examples(datadir+"qa1_single-supporting-fact_train.txt")
         test_examples = file_to_examples(datadir+"qa1_single-supporting-fact_test.txt")
@@ -168,7 +173,12 @@ def get_data(datadir, tasknum):
     else:
         raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
 
-    return (train_examples, test_examples)
+    if test:
+        print 'WARNING: Loading TEST SET'
+        return train_examples, test_examples
+    else:
+        return train_examples, None
+
 
 @util.memoize
 def load_glove_vectors(datadir, dimension):
@@ -189,4 +199,3 @@ def load_glove_vectors(datadir, dimension):
                 print i
     print 'done'
     return wvecs
-
