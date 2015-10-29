@@ -234,6 +234,19 @@ class LSTMLayer(object):
             p.set_value(params[p.name], borrow=True)
 
 
+class wordVectorLayer(object):
+    '''
+        Map indices to columns of the embedding_matrix
+    '''
+    def __init__(self, wv_matrix):
+        self.embedding_matrix = theano.shared(value=wv_matrix, name='wv_matrix')
+        self.params = [self.embedding_matrix]
+
+    def __call__(self, indices):
+        # returns the average of the relevant columns
+        return self.embedding_matrix[:, indices]
+
+
 #######################
 #  OBJECTIVES         #
 #######################
