@@ -1,6 +1,7 @@
 import os
 import util
 import sys
+import re
 import numpy as np
 
 class example(object):
@@ -17,6 +18,53 @@ class example(object):
     def __repr__(self):
         return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n" \
                 % (self.sentences, self.question, self.answer, self.hints))
+
+
+class wordVectors(object):
+    def __init__(self, dataset):
+        self.words_to_idx, self.idx_to_word = self._map_words_to_idx(dataset)
+
+    def _map_words_to_idx(self, dataset):
+
+        # first get a big list of all the tokens
+        def tokenize(sentence):
+            return re.findall(r"[\w']+|[.,!?;]", sentence)
+
+        tokens = []
+        for example in dataset:
+            # add all supporting sentence words
+            for sentence in example.sentences:
+                tokens += tokenize(sentence)
+
+            tokens += tokenize(example.question)
+            tokens += tokenize(example.answer)
+
+        tokens = set(tokens)
+
+        # loop over the tokens and establish a canonical word <-> idx mapping
+        words_to_idx = {}
+        idx_to_words = {}
+        counter = 0
+        for token in tokens:
+            token = token.lower()
+            if token not in words_to_idx:
+                words_to_idx[token] = counter
+                idx_to_words[counter] = token
+                counter += 1
+
+        return words_to_idx, idx_to_words
+
+    def get_wv_matrix(self, dimension, glove_dir=None):
+        self.wv_matrix = np.random.rand(dimension, len(self.words_to_idx))  # TODO: pick initialization carefully
+        if glove_dir is not None:
+            pretrained = load_glove_vectors(glove_dir, dimension)
+
+            for word in self.words_to_idx:
+                if word in pretrained:
+                    self.wv_matrix[:, self.words_to_idx[word]] = pretrained[word].ravel()
+
+        return self.wv_matrix
+
 
 # Some of the answers aren't words eg: (n,s):
 # This replaces it with "north south"
@@ -93,6 +141,7 @@ def get_data(datadir, tasknum):
         fix_directions(test_examples)
     else:
         raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
+
     return (train_examples, test_examples)
 
 @util.memoize
@@ -114,3 +163,4 @@ def load_glove_vectors(datadir, dimension):
                 print i
     print 'done'
     return wvecs
+
