@@ -213,7 +213,7 @@ class LSTMLayer(object):
 
         h = o * T.tanh(next_cell)
 
-        return [next_cell, h]
+        return [h, next_cell]
 
     def reset(self, h, cell):
         '''
