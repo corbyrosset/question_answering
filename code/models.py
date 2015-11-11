@@ -91,7 +91,7 @@ class embeddingModel(object):
             outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0]
         )
         if self.mean_pool:
-            return T.mean(hidden)
+            return T.mean(hidden, axis=0)
         else:
             return hidden[-1]
 
@@ -104,7 +104,7 @@ class embeddingModel(object):
             outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0]
         )
         if self.mean_pool:
-            return T.mean(hidden)
+            return T.mean(hidden, axis=0)
         else:
             return hidden[-1]
 
