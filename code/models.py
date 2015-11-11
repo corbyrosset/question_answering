@@ -3,7 +3,7 @@ import layers
 import theano.tensor as T
 
 class Model(object):
-    def get_answer_probs:
+    def get_answer_probs():
         pass
 
 class averagingModel(object):
@@ -13,6 +13,7 @@ class averagingModel(object):
         wv_matrix: should be an initialized numpy matrix
     '''
     def __init__(self, wv_matrix, hidden_dim, num_classes):
+        print 'Initializing averaging model...'
         # just concatenate vector averages
         input_dim = 2 * wv_matrix.shape[0]
 
@@ -49,10 +50,14 @@ class averagingModel(object):
 
         return probs
 
+
 class embeddingModel(object):
     '''
     '''
-    def __init__(self, wv_matrix, lstm_hidden_dim, nn_hidden_dim, num_classes):
+    def __init__(self, wv_matrix, lstm_hidden_dim, nn_hidden_dim, num_classes,
+                 mean_pool=False):
+        print 'Initializing embedding model...'
+        self.mean_pool = mean_pool
         input_dim = wv_matrix.shape[0]
         self.embeddingLayer = layers.wordVectorLayer(wv_matrix)
         self.LSTMLayer = layers.LSTMLayer(input_dim, lstm_hidden_dim)
@@ -77,35 +82,37 @@ class embeddingModel(object):
         for param in self.params:
             self.l2 += (param ** 2).sum()
 
-
     def embed_support(self, supporting_indices):
         # matrix with appropriate columns (words)
         word_vec = self.embeddingLayer(supporting_indices)
-        [hidden, cells] = theano.scan(
-            fn=lambda word, h, prev_cell : self.LSTMLayer(word, h, prev_cell),
-            sequence=word_vec.T, # by default scan iterates over rows
-            outputs_info=self.LSTMLayer.h0, self.LSTMLayer.cell_0
+        [hidden, cells], _ = theano.scan(
+            fn=lambda word, h, prev_cell: self.LSTMLayer(word, h, prev_cell),
+            sequences=word_vec.T,  # by default scan iterates over rows
+            outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0]
         )
-        # maybe try averaging as well as the last hidden layer
-        return hidden[-1]
-
+        if self.mean_pool:
+            return T.mean(hidden)
+        else:
+            return hidden[-1]
 
     def embed_question(self, question_indices):
         # uses same LSTM layer as embed_support, but maybe try a separate one
         word_vec = self.embeddingLayer(question_indices)
-        [hidden, cells] = theano.scan(
-            fn=lambda word, h, prev_cell : self.LSTMLayer(word, h, prev_cell),
-            sequence=word_vec.T, # by default scan iterates over rows
-            outputs_info=self.LSTMLayer.h0, self.LSTMLayer.cell_0
+        [hidden, cells], _ = theano.scan(
+            fn=lambda word, h, prev_cell: self.LSTMLayer(word, h, prev_cell),
+            sequences=word_vec.T,  # by default scan iterates over rows
+            outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0]
         )
-        return hidden[-1]
-
+        if self.mean_pool:
+            return T.mean(hidden)
+        else:
+            return hidden[-1]
 
     def get_answer_probs(self, supporting_indices, question_indices):
-        support = embed_support(supporting_indices)
-        question = embed_question(question_indices)
+        support = self.embed_support(supporting_indices)
+        question = self.embed_question(question_indices)
 
-        hidden_1 = self.fc1(T.concatenate([support, question]))
+        hidden_1 = self.fc1(T.concatenate([support, question], axis=1))
         hidden_2 = self.fc2(hidden_1)
         outputs = self.linear_layer(hidden_2)
         probs = layers.SoftMax(outputs)
