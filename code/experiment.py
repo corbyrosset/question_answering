@@ -107,8 +107,8 @@ class BasicController(Controller):
 
         if experiment.steps % self.report_wait == 0:
             print 'steps: {}, epochs: {:.2f}'.format(experiment.steps, experiment.epochs)
-            util.metadata('steps', experiment.steps)
-            util.metadata('epochs', experiment.epochs)
+            util.metadata('steps', experiment.steps, self.path)
+            util.metadata('epochs', experiment.epochs, self.path)
 
             # report last seen
             time_rep = datetime.now().strftime('%H:%M:%S %m/%d')
