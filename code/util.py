@@ -134,3 +134,10 @@ def gb_used():
         # on Mac, used is in terms of bytes
         power = 3
     return float(used) / math.pow(1024, power)
+
+def in_ipython():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False
