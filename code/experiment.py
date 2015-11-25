@@ -67,7 +67,7 @@ class Experiment(object):
                 timestamps.append(self.steps / float(len(self.train)))
                 values.append(val)
 
-                util.metadata(name, val)
+                util.metadata(name, val, self.path)
                 report.append((name, val))
 
         if len(report) > 0:
@@ -112,10 +112,10 @@ class BasicController(Controller):
 
             # report last seen
             time_rep = datetime.now().strftime('%H:%M:%S %m/%d')
-            util.metadata('last_seen', time_rep)
+            util.metadata('last_seen', time_rep, self.path)
 
             # report memory used
-            util.metadata('gb_used', util.gb_used())
+            util.metadata('gb_used', util.gb_used(), self.path)
 
         if experiment.steps % self.save_wait == 0 and experiment.steps != 0:
             print 'saving params...'

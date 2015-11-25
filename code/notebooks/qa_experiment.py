@@ -1,10 +1,9 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[43]:
 
-import sys
-sys.path.append('../')
+import scriptinit
 import random
 import numpy as np
 import theano
@@ -32,8 +31,8 @@ if DEBUG:
 
 # variables that don't change between experiments/trials
 constants = {
-    'datadir': '../../data/',
-    'glovedir':'../../data/glove',
+    'datadir': 'data/',
+    'glovedir': 'data/glove',
     'report_wait': 500,
     'save_wait': 1000,
     'max_epochs': 50,
