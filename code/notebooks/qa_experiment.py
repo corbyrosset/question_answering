@@ -46,7 +46,7 @@ hyperparams = {
 
     ## all of the models
     'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
-    'hidden_dim': '128',
+    'hidden_dim': 128,
     'l2_reg': 0.0,
 
 
