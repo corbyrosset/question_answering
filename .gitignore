@@ -13,3 +13,7 @@ code/notebooks/.ipynb_checkpoints/*
 
 # Ignore glove data
 data/glove/*.txt
+
+# Ignore pickled files and metadata
+*.cpkl
+*.json
