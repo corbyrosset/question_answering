@@ -28,7 +28,12 @@ for var, val in config.iteritems():
         for idx in xrange(len(options)):
             options[idx] += '--' + var + ' ' + str(val) + ' '
 
+## COMMAND LINE ##
 for opt in options:
     command = 'python %s %s' % (args.task, opt)
     print command
     os.system(command)
+
+## TODO: BARLEY ##
+
+## TODO: NLP CLUSTER/CODALAB ##
