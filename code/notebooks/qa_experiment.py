@@ -15,17 +15,7 @@ from util import *
 import layers
 import optimizers
 from experiment import *
-
-
-# In[ ]:
-
-# Constants
-datadir = '../../data/'
-glovedir = '../../data/glove'
-SEED = 999
-# np.random.seed(SEED)
-
-task_number = 1 # simple task for now
+from os.path import join
 
 
 # In[ ]:
@@ -39,25 +29,48 @@ if DEBUG:
 
 # In[ ]:
 
+# Constants
+data_constants  = {
+    'datadir': '../../data/',
+    'glovedir':'../../data/glove',
+    'task_number': 1
+    }
+
+
+# In[ ]:
+
 # HYPERPARAMETERS
-wv_dimensions = 50  # speed up learning by using the smallest GloVe dimension
+hyperparams = {
+    'wv_dimensions': 50,  # speed up learning by using the smallest GloVe dimension
+    'base_lr': 1e-2,
 
-# training
-num_epochs = 100
-base_lr = 1e-2
-report_wait = 500
-save_wait = 1000
-max_epochs=30
-
-## all of the models
-model_type = 'sentenceEmbedding'  # one of |sentenceEmbedding| or |averaging|
-hidden_dim = 128
-l2_reg = 0.0
+    ## all of the models
+    'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
+    'hidden_dim': '128',
+    'l2_reg': 0.0,
 
 
-# specific to sentence embedding model
-lstm_hidden_dim = 128
-mean_pool = False
+    # specific to sentence embedding model
+    'lstm_hidden_dim': 128,
+    'mean_pool': False,
+
+    # logging 
+    'report_wait': 500,
+    'save_wait': 1000,
+    'max_epochs': 30,
+    'logging_path': 'logging_dir'
+}
+
+
+# In[ ]:
+
+# load into namespace and log to metadata
+for var, val in hyperparams.iteritems():
+    exec("{0} = hyperparams['{0}']".format(var))
+    util.metadata(var, val)
+for var, val in data_constants.iteritems():
+    exec("{0} = data_constants['{0}']".format(var))
+    util.metadata(var, val)
 
 
 # In[ ]:
@@ -138,13 +151,13 @@ model.backprop = theano.function(
 # In[ ]:
 
 # Set up the experiment object
-controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max_epochs=max_epochs)]
+controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max_epochs=max_epochs, path=logging_path)]
 
 dset_samples =  len(dev)
 observers = [ObjectiveObserver(dset_samples=dset_samples, report_wait=report_wait),
              AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait)]
 
-experiment = Experiment(model, train, dev, controllers=controllers, observers=observers)
+experiment = Experiment(model, train, dev, controllers=controllers, observers=observers, path=logging_path)
 
 
 # In[ ]:
@@ -156,10 +169,5 @@ experiment.run_experiment()
 # In[ ]:
 
 ## Plot learning curves
-report('history.cpkl')
-
-
-# In[ ]:
-
-
+report(join(logging_path, 'history.cpkl'))
 

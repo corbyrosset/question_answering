@@ -6,6 +6,7 @@ import json
 import resource
 import platform
 import math
+from os.path import join
 
 
 def memoize(f):
@@ -104,7 +105,7 @@ class NestedDict(MutableMapping):
         return dict(items)
 
 meta = NestedDict()
-def metadata(keys, val):
+def metadata(keys, val, path=''):
     """
     Sets entries in a nested dictionary called meta.
     After each call, meta is updated and saved to meta.json in the current directory
@@ -120,7 +121,7 @@ def metadata(keys, val):
         meta[keys] = val
 
     # sync with file
-    with open('meta.json', 'w') as f:
+    with open(join(path, 'meta.json'), 'w') as f:
         d = meta.as_dict()  # json only handles dicts
         json.dump(d, f)
 

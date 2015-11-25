@@ -7,14 +7,16 @@ import time
 import numpy as np
 import matplotlib.pylab as plt
 import util
+from os.path import join
 
 
 class Experiment(object):
-    def __init__(self, model, train, dev, observers=None, controllers=None):
+    def __init__(self, model, train, dev, observers=None, controllers=None, path=''):
         ## Basic Inputs
         self.model = model
         self.train = train
         self.dev = dev
+        self.path = path
 
         self.halt = False
 
@@ -70,7 +72,7 @@ class Experiment(object):
 
         if len(report) > 0:
             print ', '.join(['{}: {:.3f}'.format('.'.join(name), val) for name, val in report])
-            with open('history.cpkl', 'w') as f:
+            with open(join(self.path, 'history.cpkl'), 'w') as f:
                 pickle.dump(dict(self.history), f)
 
 
@@ -92,10 +94,11 @@ class Observer(object):
 
 class BasicController(Controller):
 
-    def __init__(self, report_wait=30, save_wait=30, max_epochs=50):
+    def __init__(self, report_wait=30, save_wait=30, max_epochs=50, path=''):
         self.report_wait = report_wait
         self.save_wait = save_wait
         self.max_epochs = max_epochs
+        self.path = path
 
     def control(self, experiment):
         if experiment.epochs >= self.max_epochs:
@@ -116,7 +119,7 @@ class BasicController(Controller):
 
         if experiment.steps % self.save_wait == 0 and experiment.steps != 0:
             print 'saving params...'
-            experiment.model.save_params('params.cpkl')
+            experiment.model.save_params(join(self.path, 'params.cpkl'))
 
 
 class SpeedObserver(Observer):
@@ -195,7 +198,6 @@ def report(path='history.cpkl'):
         plt.title(subplot_name)
         for name, (timestamps, values) in trend_lines.iteritems():
             plt.plot(timestamps, values, label=name)
-            # plt.xlabel('Num Epochs')
         plt.legend()
 
     plt.show()
