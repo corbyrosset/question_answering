@@ -1,12 +1,30 @@
 import theano
 import layers
+import cPickle as pickle
 import theano.tensor as T
 
-class Model(object):
-    def get_answer_probs():
-        pass
 
-class averagingModel(object):
+class Model(object):
+    def get_answer_probs(self, supporting_indices, question_indices):
+        raise NotImplementedError()
+
+    def backprop(support_idxs, question_idxs, answer):
+        raise NotImplementedError()
+
+    def predict(support_idxs, question_idxs):
+        raise NotImplementedError()
+
+    def objective(support_idxs, question_idxs, answer):
+        raise NotImplementedError()
+
+    def load_params(self, path):
+        raise NotImplementedError()
+
+    def save_params(self, path):
+        raise NotImplementedError()
+
+
+class averagingModel(Model):
     '''
         Simple 1-hidden layer neural network
         Input: should be symbolic variables
@@ -32,11 +50,10 @@ class averagingModel(object):
                                                   output_dim=num_classes,
                                                   activation=None)
 
+        self.layers = {'embeddingLayer':  self.embeddingLayer, 'fc1' : self.fc1, 
+                        'fc2': self.fc2, 'linear': self.linear_layer}
         self.params = self.embeddingLayer.params + self.fc1.params + self.fc2.params + self.linear_layer.params
 
-        self.l2 = 0
-        for param in self.params:
-            self.l2 += (param ** 2).sum()
 
     def get_answer_probs(self, supporting_indices, question_indices):
         # simple averaging of the representations
@@ -50,8 +67,23 @@ class averagingModel(object):
 
         return probs
 
+    def save_params(self, path):
+        assert path is not None
+        print 'Saving params to ', path
+        params = {}
+        for name, layer in self.layers.iteritems():
+            params[name] = layer.get_params()
+        pickle.dump(params, file(path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
-class embeddingModel(object):
+    def load_params(self, path):
+        assert path is not None
+        print 'Restoring params from ', path
+        params = pickle.load(file(path, 'r'))
+        for name, layer in self.layers.iteritems():
+            layer.set_params(params[name])
+
+
+class embeddingModel(Model):
     '''
     '''
     def __init__(self, wv_matrix, lstm_hidden_dim, nn_hidden_dim, num_classes,
@@ -75,12 +107,11 @@ class embeddingModel(object):
                                                   output_dim=num_classes,
                                                   activation=None)
 
+        self.layers = {'embeddingLayer':  self.embeddingLayer, 'lstm': self.LSTMLayer,
+                       'fc1': self.fc1, 'fc2': self.fc2, 'linear': self.linear_layer}
+
         self.params = self.embeddingLayer.params + self.LSTMLayer.params + \
             self.fc1.params + self.fc2.params + self.linear_layer.params
-
-        self.l2 = 0
-        for param in self.params:
-            self.l2 += (param ** 2).sum()
 
     def embed_support(self, supporting_indices):
         # matrix with appropriate columns (words)
@@ -118,3 +149,18 @@ class embeddingModel(object):
         probs = layers.SoftMax(outputs)
 
         return probs
+
+    def save_params(self, path):
+        assert path is not None
+        print 'Saving params to ', path
+        params = {}
+        for name, layer in self.layers.iteritems():
+            params[name] = layer.get_params()
+        pickle.dump(params, file(path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_params(self, path):
+        assert path is not None
+        print 'Restoring params from ', path
+        params = pickle.load(file(path, 'r'))
+        for name, layer in self.layers.iteritems():
+            layer.set_params(params[name])

@@ -246,6 +246,16 @@ class wordVectorLayer(object):
         # returns the average of the relevant columns
         return self.embedding_matrix[:, indices]
 
+    def get_params(self):
+        params = {}
+        for p in self.params:
+            params[p.name] = p.get_value()
+        return params
+
+    def set_params(self, params):
+        for p in self.params:
+            p.set_value(params[p.name], borrow=True)
+
 
 #######################
 #  OBJECTIVES         #
@@ -265,3 +275,10 @@ def SoftMax(inputs):
     currentLayerValues = e_x / e_x.sum(axis=1, keepdims=True)
 
     return currentLayerValues
+
+
+def l2_penalty(params):
+    l2 = 0
+    for param in params:
+        l2 += (param ** 2).sum()
+    return l2
