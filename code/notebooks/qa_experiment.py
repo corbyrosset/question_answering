@@ -14,6 +14,7 @@ from data_import import *
 from util import *
 import layers
 import optimizers
+from experiment import *
 
 
 # In[ ]:
@@ -44,6 +45,9 @@ wv_dimensions = 50  # speed up learning by using the smallest GloVe dimension
 # training
 num_epochs = 100
 base_lr = 1e-2
+report_wait = 500
+save_wait = 1000
+max_epochs=30
 
 ## all of the models
 model_type = 'sentenceEmbedding'  # one of |sentenceEmbedding| or |averaging|
@@ -66,9 +70,9 @@ train_ex = examples_to_example_ind(word_vectors, train_ex)  # get examples in nu
 # shuffle data
 random.shuffle(train_ex)
 
-# split the train into 70% train, 30% dev
+# split the train into 90% train, 10% dev
 train = train_ex[:int(.9 * len(train_ex))]
-dev = train_ex[int(.1 * len(train_ex)):]
+dev = train_ex[int(.9 * len(train_ex)):]
 
 
 # In[ ]:
@@ -102,7 +106,7 @@ answer_pred = T.argmax(answer_probs)
 # define the loss and cost function
 answer = T.ivector()
 loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer])
-cost = loss + l2_reg * model.l2
+cost = loss + l2_reg * layers.l2_penalty(model.params)
 
 
 # In[ ]:
@@ -115,54 +119,47 @@ updates = optimizers.Adagrad(cost, model.params, base_lr=base_lr)
 
 # compile functions to train and evaluate the model
 print 'Compiling predict function'
-predict = theano.function(
-           inputs = [support_idxs, question_idxs],
-           outputs = answer_pred
-        )
+model.predict = theano.function(
+                   inputs = [support_idxs, question_idxs],
+                   outputs = answer_pred)
+
+print 'Compiling objective function'
+model.objective = theano.function(
+                    inputs = [support_idxs, question_idxs, answer],
+                    outputs = loss)
 
 print 'Compiling backprop function'
-backprop = theano.function(
-            inputs=[support_idxs, question_idxs, answer],
-            outputs=[loss, answer_probs],
-            updates=updates)
+model.backprop = theano.function(
+                    inputs=[support_idxs, question_idxs, answer],
+                    outputs=[loss, answer_probs],
+                    updates=updates)
 
 
 # In[ ]:
 
-## Training!!!
-epoch = 0
-train_acc_hist = []
-dev_acc_hist = []
-while epoch < num_epochs:
-    print 'Epoch %d ' % epoch
-    for example in verboserate(train):
-        backprop(np.concatenate(example.sentences), example.question, example.answer)
-    
-    print 'Computing Train/Val Accuracy: '
-    def compute_acc(dset):
-        correct = 0.
-        for example in verboserate(dset):
-            if example.answer == predict(np.concatenate(example.sentences), example.question):
-                correct += 1
-        return correct / float(len(dset))
-    
-    train_acc, dev_acc  = compute_acc(train), compute_acc(dev)
-    train_acc_hist.append(train_acc)
-    dev_acc_hist.append(dev_acc)
-    print 'Train Accuracy: %f , Validation Accuracy %f' % (train_acc, dev_acc)
-    epoch += 1
+# Set up the experiment object
+controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max_epochs=max_epochs)]
+
+dset_samples =  len(dev)
+observers = [ObjectiveObserver(dset_samples=dset_samples, report_wait=report_wait),
+             AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait)]
+
+experiment = Experiment(model, train, dev, controllers=controllers, observers=observers)
+
+
+# In[ ]:
+
+# launch the experiment
+experiment.run_experiment()
 
 
 # In[ ]:
 
 ## Plot learning curves
-import matplotlib.pylab as plt
+report('history.cpkl')
 
-plt.plot(train_acc_hist)
-plt.plot(dev_acc_hist)
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.title('Learning Curves')
-plt.legend(['Train', 'Dev'])
-plt.show()
+
+# In[ ]:
+
+
 
