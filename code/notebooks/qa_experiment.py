@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[43]:
+# In[ ]:
 
 import scriptinit
 import random
@@ -45,13 +45,13 @@ constants = {
 # step up argument parsing
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-task_num', '--task_number', type=int, required=True)
+parser.add_argument('-tn', '--task_number', type=int, required=True)
 parser.add_argument('-lr', '--base_lr', type=float, required=True)
-parser.add_argument('-model', '--model_type', type=str, required=True)
+parser.add_argument('-m', '--model_type', type=str, required=True)
 parser.add_argument('-hd', '--hidden_dim', type=int, required=True)
 parser.add_argument('-l2', '--l2_reg', type=float, required=True)
 
-parser.add_argument('-lstm_hd', '--lstm_hidden_dim', type=int, required=True)
+parser.add_argument('-lhd', '--lstm_hidden_dim', type=int, required=True)
 parser.add_argument('-mp', '--mean_pool', type=int, required=True)
 parser.add_argument('-log', '--logging_path', type=str, required=True)
 
@@ -60,7 +60,16 @@ parser.add_argument('-log', '--logging_path', type=str, required=True)
 
 # variables that change between runs
 if util.in_ipython():
-    hyperparameters = {
+    constants = {
+        'datadir': '../../data/',
+        'glovedir': '../../data/glove',
+        'report_wait': 500,
+        'save_wait': 1000,
+        'max_epochs': 50,
+        'wv_dimensions': 50,  # speed up learning by using the smallest GloVe dimension
+    }
+
+    hyperparams = {
         # data and logging
         'task_number': 1,  # {1, 3, 5, 17, 19}
 
@@ -90,6 +99,7 @@ else:
 for var, val in hyperparams.iteritems():
     exec("{0} = hyperparams['{0}']".format(var))
     util.metadata(var, val)
+
 for var, val in constants.iteritems():
     exec("{0} = constants['{0}']".format(var))
     util.metadata(var, val)
@@ -192,4 +202,9 @@ experiment.run_experiment()
 
 ## Plot learning curves
 report(join(logging_path, 'history.cpkl'))
+
+
+# In[ ]:
+
+
 

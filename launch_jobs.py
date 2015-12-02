@@ -28,12 +28,41 @@ for var, val in config.iteritems():
         for idx in xrange(len(options)):
             options[idx] += '--' + var + ' ' + str(val) + ' '
 
-## COMMAND LINE ##
-for opt in options:
-    command = 'python %s %s' % (args.task, opt)
-    print command
-    os.system(command)
 
-## TODO: BARLEY ##
+def get_logging_dir(opt):
+    return opt.replace(' ', '').replace('--', '-')[1:]
+
+
+def submit_qsubscript(command, log_dir):
+    qsubscript = '''
+#!/bin/bash
+#$ -cwd
+#$ -N %s
+#$ -S /bin/bash
+#$ -j y
+
+   %s
+
+''' % (log_dir, command)
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    qsubfile = open("%s/run.submit" % log_dir, 'w')
+    qsubfile.write(qsubscript)
+    qsubfile.close()
+    # os.system('qsub %s/run.submit' % log_dir)
+
+
+## COMMAND LINE ##
+# for opt in options:
+#     command = 'python %s %s' % (args.task, opt)
+#     print command
+#     os.system(command)
+
+## BARLEY ##
+for opt in options:
+    log_dir = get_logging_dir(opt)
+    opt += '--log ' + log_dir
+    command = 'python %s %s' % (args.task, opt)
+    submit_qsubscript(command, log_dir)
 
 ## TODO: NLP CLUSTER/CODALAB ##
