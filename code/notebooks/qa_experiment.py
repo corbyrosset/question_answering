@@ -35,7 +35,6 @@ constants = {
     'glovedir': 'data/glove',
     'report_wait': 500,
     'save_wait': 1000,
-    'max_epochs': 50,
     'wv_dimensions': 50,  # speed up learning by using the smallest GloVe dimension
 }
 
@@ -54,6 +53,8 @@ parser.add_argument('-l2', '--l2_reg', type=float, required=True)
 parser.add_argument('-lhd', '--lstm_hidden_dim', type=int, required=True)
 parser.add_argument('-mp', '--mean_pool', type=int, required=True)
 parser.add_argument('-log', '--logging_path', type=str, required=True)
+
+parser.add_argument('-me', '--max_epochs', type=int, required=True)
 
 
 # In[ ]:
@@ -201,7 +202,7 @@ experiment.run_experiment()
 # In[ ]:
 
 ## Plot learning curves
-report(join(logging_path, 'history.cpkl'))
+#report(join(logging_path, 'history.cpkl'))
 
 
 # In[ ]:

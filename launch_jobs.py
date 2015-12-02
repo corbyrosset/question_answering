@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 # task arguments
 parser.add_argument('config')
 parser.add_argument('--task', default='code/notebooks/qa_experiment.py')
+parser.add_argument('--queue', default='command_line')
 args = parser.parse_args()
 
 config = getattr(configs, args.config)
@@ -54,20 +55,21 @@ def submit_qsubscript(command, log_dir):
 
 
 ## COMMAND LINE ##
-# for opt in options:
-#     log_dir = get_logging_dir(opt)
-#     if not os.path.exists(log_dir):
-#         os.mkdir(log_dir)
-#     opt += '--log ' + log_dir
-#     command = 'python %s %s' % (args.task, opt)
-#     print command
-#     os.system(command)
-
+if args.queue == 'command_line':
+	for opt in options:
+		log_dir = get_logging_dir(opt)
+     		if not os.path.exists(log_dir):
+        		 os.mkdir(log_dir)
+    		opt += '--log ' + log_dir
+    		command = 'python %s %s' % (args.task, opt)
+   		print command
+  		os.system(command)
 ## BARLEY ##
-for opt in options:
-    log_dir = get_logging_dir(opt)
-    opt += '--log ' + log_dir
-    command = 'python %s %s' % (args.task, opt)
-    submit_qsubscript(command, log_dir)
+elif args.queue == 'barley':
+	for opt in options:
+	    log_dir = get_logging_dir(opt)
+	    opt += '--log ' + log_dir
+	    command = 'python %s %s' % (args.task, opt)
+	    submit_qsubscript(command, log_dir)
 
 ## TODO: NLP CLUSTER/CODALAB ##
