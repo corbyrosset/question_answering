@@ -47,7 +47,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-tn', '--task_number', type=int, required=True)
 parser.add_argument('-lr', '--base_lr', type=float, required=True)
-parser.add_argument('-m', '--model_type', type=str, required=True)
+parser.add_argument('-mt', '--model_type', type=str, required=True)
 parser.add_argument('-hd', '--hidden_dim', type=int, required=True)
 parser.add_argument('-l2', '--l2_reg', type=float, required=True)
 
