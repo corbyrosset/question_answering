@@ -49,7 +49,7 @@ def submit_qsubscript(command, log_dir):
     qsubfile = open("%s/run.submit" % log_dir, 'w')
     qsubfile.write(qsubscript)
     qsubfile.close()
-    # os.system('qsub %s/run.submit' % log_dir)
+    os.system('qsub %s/run.submit' % log_dir)
 
 
 ## COMMAND LINE ##
