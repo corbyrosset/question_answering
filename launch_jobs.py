@@ -37,14 +37,14 @@ def submit_qsubscript(command, log_dir):
     qsubscript = '''
 #!/bin/bash
 #$ -cwd
-#$ -N %s
-#$ -o %s
+#$ -N qa_experiment
+#$ -o %s/output.txt
 #$ -S /bin/bash
 #$ -j y
 
    %s
 
-''' % (log_dir, command)
+''' % (log_dir,  command)
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     qsubfile = open("%s/run.submit" % log_dir, 'w')
