@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('config')
 parser.add_argument('--task', default='code/notebooks/qa_experiment.py')
 parser.add_argument('--queue', default='command_line')
+parser.add_argument('--subpath', default='')
 args = parser.parse_args()
 
 config = getattr(configs, args.config)
@@ -31,7 +32,10 @@ for var, val in config.iteritems():
 
 
 def get_logging_dir(opt):
-    return 'experiments/' + opt.replace(' ', '').replace('--', '-')[1:]
+	subdir = os.path.join('experiments', args.subpath)
+	if not os.path.exists(subdir):
+		os.mkdir(subdir)
+	return os.path.join(subdir, opt.replace(' ', '').replace('--', '-')[1:])
 
 
 def submit_qsubscript(command, log_dir):
