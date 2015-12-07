@@ -9,6 +9,8 @@ parser = argparse.ArgumentParser()
 # task arguments
 parser.add_argument('config')
 parser.add_argument('--task', default='code/notebooks/qa_experiment.py')
+parser.add_argument('--queue', default='command_line')
+parser.add_argument('--subpath', default='')
 args = parser.parse_args()
 
 config = getattr(configs, args.config)
@@ -30,21 +32,24 @@ for var, val in config.iteritems():
 
 
 def get_logging_dir(opt):
-    return 'experiments/' + opt.replace(' ', '').replace('--', '-')[1:]
+	subdir = os.path.join('experiments', args.subpath)
+	if not os.path.exists(subdir):
+		os.mkdir(subdir)
+	return os.path.join(subdir, opt.replace(' ', '').replace('--', '-')[1:])
 
 
 def submit_qsubscript(command, log_dir):
     qsubscript = '''
 #!/bin/bash
 #$ -cwd
-#$ -N %s
-#$ -o %s
+#$ -N qa_experiment
+#$ -o %s/output.txt
 #$ -S /bin/bash
 #$ -j y
 
    %s
 
-''' % (log_dir, command)
+''' % (log_dir,  command)
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     qsubfile = open("%s/run.submit" % log_dir, 'w')
@@ -54,20 +59,21 @@ def submit_qsubscript(command, log_dir):
 
 
 ## COMMAND LINE ##
-# for opt in options:
-#     log_dir = get_logging_dir(opt)
-#     if not os.path.exists(log_dir):
-#         os.mkdir(log_dir)
-#     opt += '--log ' + log_dir
-#     command = 'python %s %s' % (args.task, opt)
-#     print command
-#     os.system(command)
-
+if args.queue == 'command_line':
+	for opt in options:
+		log_dir = get_logging_dir(opt)
+     		if not os.path.exists(log_dir):
+        		 os.mkdir(log_dir)
+    		opt += '--log ' + log_dir
+    		command = 'python %s %s' % (args.task, opt)
+   		print command
+  		os.system(command)
 ## BARLEY ##
-for opt in options:
-    log_dir = get_logging_dir(opt)
-    opt += '--log ' + log_dir
-    command = 'python %s %s' % (args.task, opt)
-    submit_qsubscript(command, log_dir)
+elif args.queue == 'barley':
+	for opt in options:
+	    log_dir = get_logging_dir(opt)
+	    opt += '--log ' + log_dir
+	    command = 'python %s %s' % (args.task, opt)
+	    submit_qsubscript(command, log_dir)
 
 ## TODO: NLP CLUSTER/CODALAB ##
