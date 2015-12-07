@@ -44,7 +44,8 @@ class Experiment(object):
             # TODO: Figure out minibatches/ accumulate gradients
             # TODO: Specific to current dataset format!
             for ex in train_copy:
-                self.model.backprop(np.concatenate(ex.sentences), ex.question, ex.answer)
+                self.model.backprop(ex.sentences, ex.mask, ex.question,
+                                    ex.answer, ex.hints)
 
                 for controller in self.controllers:
                     controller.control(self)
@@ -71,7 +72,8 @@ class Experiment(object):
                 report.append((name, val))
 
         if len(report) > 0:
-            print ', '.join(['{}: {:.3f}'.format('.'.join(name), val) for name, val in report])
+            print ', '.join(['{}: {:.3f}'.format('.'.join(name), val)
+                            for name, val in report])
             with open(join(self.path, 'history.cpkl'), 'w') as f:
                 pickle.dump(dict(self.history), f)
 
@@ -106,7 +108,8 @@ class BasicController(Controller):
             experiment.halt = True
 
         if experiment.steps % self.report_wait == 0:
-            print 'steps: {}, epochs: {:.2f}'.format(experiment.steps, experiment.epochs)
+            print 'steps: {}, epochs: {:.2f}'.format(experiment.steps,
+                                                     experiment.epochs)
             util.metadata('steps', experiment.steps, self.path)
             util.metadata('epochs', experiment.epochs, self.path)
 
@@ -147,8 +150,10 @@ class ObjectiveObserver(Observer):
         if experiment.steps % self.report_wait == 0:
             def objective_mean(dset):
                 sample = util.sample_if_large(dset, self.dset_samples)
-                vals = [experiment.model.objective(np.concatenate(ex.sentences),
-                        ex.question, ex.answer) for ex in util.verboserate(sample)]
+                vals = []
+                for ex in util.verboserate(sample):
+                    vals.append(experiment.model.objective(ex.sentences,
+                                ex.mask, ex.question, ex.answer, ex.hints))
                 return np.mean(vals)
 
             # Note that we never report exact on train
@@ -167,8 +172,10 @@ class AccuracyObserver(Observer):
             def accuracy_mean(dset):
                 sample = util.sample_if_large(dset, self.dset_samples)
 
-                vals = [ex.answer == experiment.model.predict(np.concatenate(ex.sentences), ex.question)
-                        for ex in util.verboserate(sample)]
+                vals = []
+                for ex in util.verboserate(sample):
+                    correct = ex.answer == experiment.model.predict(ex.sentences, ex.mask, ex.question)
+                    vals.append(correct)
                 return np.mean(vals)
 
             # Note that we never report exact on train

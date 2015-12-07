@@ -234,7 +234,7 @@ class LSTMLayer(object):
             p.set_value(params[p.name], borrow=True)
 
 
-class wordVectorLayer(object):
+class embeddingLayer(object):
     '''
         Map indices to columns of the embedding_matrix
     '''

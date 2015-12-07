@@ -6,13 +6,14 @@ import numpy as np
 
 
 class example_ind(object):
-    def __init__(self, sentences, question, answer, hints):
+    def __init__(self, sentences, mask, question, answer, hints):
         '''
             Object which contains relevant information for inputting into the
             model, but whose elements are integer indicies into a word vector
             matrix.
         '''
         self.sentences = sentences
+        self.mask = mask
         self.question = question
         self.answer = answer
         self.hints = hints
@@ -87,9 +88,20 @@ def examples_to_example_ind(wordVectors, examples):
         new_sents = []
         for sentence in example.sentences:
             new_sents.append(np.array([wordVectors.words_to_idx[word] for word in tokenize(sentence)], dtype='int32'))
+
+        sentences = np.zeros((len(new_sents), max(len(s) for s in new_sents)), dtype='int32')
+        mask = np.zeros_like(sentences,  dtype='int32')
+        for i, sent in enumerate(new_sents):
+            sentences[i, :len(sent)] = sent
+            mask[i, :len(sent)] = 1
+
         new_quest = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.question)], dtype='int32')
         new_ans = np.array([wordVectors.words_to_idx[word] for word in tokenize(example.answer)], dtype='int32')
-        outputs.append(example_ind(new_sents, new_quest, new_ans, example.hints))
+
+        new_hints = np.zeros((sentences.shape[0], ), dtype='int32')
+        new_hints[example.hints] = 1
+        outputs.append(example_ind(sentences, mask, new_quest, new_ans, new_hints))
+
     return outputs
 
 
@@ -130,19 +142,26 @@ def file_to_examples(file):
         # Signals start of new set
         if linenum == 1:
             information = []
+            hint_to_arr_idx = {}
+            diff = 1
 
         # For each question, add as the information all of the previous
         # sentences that could have been relevent.
         if sentence[-1] == "?":
             question = sentence
             answer = split[1]
-            hint = split[2]
+            hints = map(int, split[2].split(' '))
+
+            hint_idxs = [hint_to_arr_idx[i] for i in hints]
+
             questans.append(example(sentences=list(information),
                                     answer=answer,
                                     question=question,
-                                    hints=hint))
+                                    hints=hint_idxs))
+            diff += 1
         else:
             information.append(sentence)
+            hint_to_arr_idx[linenum] = linenum - diff
 
     return questans
 
