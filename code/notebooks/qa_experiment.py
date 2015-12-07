@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[215]:
 
 import scriptinit
 import random
@@ -18,16 +18,16 @@ from os.path import join
 import argparse
 
 
-# In[ ]:
+# In[322]:
 
 # Turn on for debugging
-DEBUG = False
+DEBUG = True
 if DEBUG:
     theano.config.optimizer='fast_compile'
     theano.config.exception_verbosity='high'
 
 
-# In[ ]:
+# In[217]:
 
 # variables that don't change between experiments/trials
 constants = {
@@ -40,7 +40,7 @@ constants = {
 }
 
 
-# In[ ]:
+# In[218]:
 
 # step up argument parsing
 parser = argparse.ArgumentParser()
@@ -56,7 +56,7 @@ parser.add_argument('-mp', '--mean_pool', type=int, required=True)
 parser.add_argument('-log', '--logging_path', type=str, required=True)
 
 
-# In[ ]:
+# In[219]:
 
 # variables that change between runs
 if util.in_ipython():
@@ -93,7 +93,7 @@ else:
     hyperparams = vars(args)
 
 
-# In[ ]:
+# In[220]:
 
 # load into namespace and log to metadata
 for var, val in hyperparams.iteritems():
@@ -105,7 +105,7 @@ for var, val in constants.iteritems():
     util.metadata(var, val)
 
 
-# In[ ]:
+# In[301]:
 
 # Load Data
 train_ex, _ = get_data(datadir, task_number, test=False)
@@ -120,67 +120,83 @@ train = train_ex[:int(.9 * len(train_ex))]
 dev = train_ex[int(.9 * len(train_ex)):]
 
 
-# In[ ]:
+# In[295]:
 
 # get word_vectors (Using glove for now)
 wv_matrix = word_vectors.get_wv_matrix(wv_dimensions, glovedir)
 
 
-# In[ ]:
+# In[286]:
 
-# set up the basic model
+# initial and setup the attention layer
+r = 0.001
+attention_embedding = np.random.rand(hidden_dim, wv_matrix.shape[1]) * 2 * r - r
+
+attention_model = attentionModel(embeddings=attention_embedding, lstm_hidden_dim=lstm_hidden_dim, reverse=True)
+
+# set up the question + facts -> answer model
 if model_type == 'averaging':
-    model = averagingModel(wv_matrix, hidden_dim=hidden_dim, num_classes=wv_matrix.shape[1])
+    qa_model = averagingModel(wv_matrix, hidden_dim=hidden_dim, num_classes=wv_matrix.shape[1])
 elif model_type == 'sentenceEmbedding':
-    model = embeddingModel(wv_matrix, lstm_hidden_dim=lstm_hidden_dim, nn_hidden_dim=hidden_dim,
+    qa_model = embeddingModel(wv_matrix, lstm_hidden_dim=lstm_hidden_dim, nn_hidden_dim=hidden_dim,
                             num_classes=wv_matrix.shape[1], mean_pool=mean_pool)
 
 
-# In[ ]:
+# In[316]:
 
 # generate answer probabilities and predictions
-support_idxs = T.ivector()
+support = T.imatrix()
+mask = T.imatrix()
 question_idxs = T.ivector()
+hints = T.ivector()
 
-answer_probs = model.get_answer_probs(support_idxs, question_idxs)
-answer_pred = T.argmax(answer_probs)
+# estimate relevance of each sentence
+relevance_probs = attention_model.get_relevance_probs(support, mask, question_idxs)
+
+# train the qa-model using the hints
+answer_probs = qa_model.get_answer_probs(support[hints > 0, :], mask[hints > 0, :], question_idxs)
+
+# predict without using the hint
+relevant_sentences = support[relevance_probs[:, 1] > 0.5, :]
+relevant_mask = mask[rel_probs[:, 1] > 0.5, :]
+answer_pred = T.argmax(qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs))
 
 
-# In[ ]:
+# In[317]:
 
 # define the loss and cost function
 answer = T.ivector()
-loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer])
+loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) - T.mean(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
 cost = loss + l2_reg * layers.l2_penalty(model.params)
 
 
-# In[ ]:
+# In[318]:
 
 # optimization
 updates = optimizers.Adagrad(cost, model.params, base_lr=base_lr)
 
 
-# In[ ]:
+# In[323]:
 
 # compile functions to train and evaluate the model
 print 'Compiling predict function'
-model.predict = theano.function(
-                   inputs = [support_idxs, question_idxs],
+qa_model.predict = theano.function(
+                   inputs = [support, mask, question_idxs],
                    outputs = answer_pred)
 
 print 'Compiling objective function'
-model.objective = theano.function(
-                    inputs = [support_idxs, question_idxs, answer],
+qa_model.objective = theano.function(
+                    inputs = [support, mask, question_idxs, answer, hints],
                     outputs = loss)
 
 print 'Compiling backprop function'
-model.backprop = theano.function(
-                    inputs=[support_idxs, question_idxs, answer],
+qa_model.backprop = theano.function(
+                    inputs=[support, mask, question_idxs, answer, hints],
                     outputs=[loss, answer_probs],
                     updates=updates)
 
 
-# In[ ]:
+# In[14]:
 
 # Set up the experiment object
 controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max_epochs=max_epochs, path=logging_path)]
@@ -189,7 +205,7 @@ dset_samples =  len(dev)
 observers = [ObjectiveObserver(dset_samples=dset_samples, report_wait=report_wait),
              AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait)]
 
-experiment = Experiment(model, train, dev, controllers=controllers, observers=observers, path=logging_path)
+experiment = Experiment(qa_model, train, dev, controllers=controllers, observers=observers, path=logging_path)
 
 
 # In[ ]:
@@ -202,9 +218,4 @@ experiment.run_experiment()
 
 ## Plot learning curves
 report(join(logging_path, 'history.cpkl'))
-
-
-# In[ ]:
-
-
 
