@@ -146,6 +146,43 @@ def file_to_examples(file):
 
     return questans
 
+@util.memoize
+def file_to_relevant_examples(file):
+    f = open(file, "r")
+    lines = f.readlines()
+    information = []
+    questans = []
+    all_info = []
+
+    # Want tuples (information, information ..., information, answer)
+    for line in lines:
+        split = line.strip().split('\t')
+        linesplit = split[0].split(' ')
+        linenum = int(linesplit[0])
+        sentence = " ".join(linesplit[1:]).strip()
+
+        # Signals start of new set
+        if linenum == 1:
+            information = []
+            all_info = []
+
+        all_info.append(sentence)
+        # For each question, add as the information all of the previous
+        # sentences that could have been relevent.
+        if sentence[-1] == "?":
+            question = sentence
+            answer = split[1]
+            hint = split[2]
+
+            relevant = [all_info[i-1] for i in map(int, hint.split(' '))]
+            questans.append(example(sentences=list(relevant),
+                                    answer=answer,
+                                    question=question,
+                                    hints=hint))
+        else:
+            information.append(sentence)
+
+    return questans
 
 def tokenize(sentence):
     return [token.lower() for token in re.findall(r"[\w']+|[.,!?;]", sentence)]
@@ -178,6 +215,35 @@ def get_data(datadir, tasknum, test=False):
         return train_examples, test_examples
     else:
         return train_examples, None
+
+def get_relevant_data(datadir, tasknum, test=False):
+    if tasknum == 1:
+        train_examples = file_to_relevant_examples(datadir+"qa1_single-supporting-fact_train.txt")
+        test_examples = file_to_relevant_examples(datadir+"qa1_single-supporting-fact_test.txt")
+    elif tasknum == 5:
+        train_examples = file_to_relevant_examples(datadir+"qa5_three-arg-relations_train.txt")
+        test_examples = file_to_relevant_examples(datadir+"qa5_three-arg-relations_test.txt")
+    elif tasknum == 7:
+        train_examples = file_to_relevant_examples(datadir+"qa7_counting_train.txt")
+        test_examples = file_to_relevant_examples(datadir+"qa7_counting_test.txt")
+    elif tasknum == 17:
+        train_examples = file_to_relevant_examples(datadir+"qa17_positional-reasoning_train.txt")
+        test_examples = file_to_relevant_examples(datadir+"qa17_positional-reasoning_test.txt")
+    elif tasknum == 19:
+        train_examples = file_to_relevant_examples(datadir+"qa19_path-finding_train.txt")
+        test_examples = file_to_relevant_examples(datadir+"qa19_path-finding_test.txt")
+        # hack to replace directions with their actual words
+        fix_directions(train_examples)
+        fix_directions(test_examples)
+    else:
+        raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
+
+    if test:
+        print 'WARNING: Loading TEST SET'
+        return train_examples, test_examples
+    else:
+        return train_examples, None
+
 
 
 @util.memoize
