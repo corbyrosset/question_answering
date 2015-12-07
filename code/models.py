@@ -83,6 +83,71 @@ class averagingModel(Model):
             layer.set_params(params[name])
 
 
+class attentionModel(object):
+    '''
+        TODO: write README
+    '''
+    def __init__(self, embeddings, lstm_hidden_dim, reverse=True):
+        print 'Initializing attention model...'
+        self.reverse = reverse
+        input_dim = 2 * embeddings.shape[0]
+        self.embeddingLayer = layers.embeddingLayer(embeddings)
+        self.LSTMLayer = layers.LSTMLayer(input_dim, lstm_hidden_dim)
+        self.linear_layer = layers.FullyConnected(input_dim=lstm_hidden_dim,
+                                                  output_dim=2,
+                                                  activation=None)
+        self.layers = {'lstm': self.LSTMLayer, 'linear': self.linear_layer,
+                       'embeddings': self.embeddingLayer}
+
+        self.params = self.LSTMLayer.params + self.linear_layer.params + self.embeddingLayer.params
+
+    def get_relevance_probs(self, support, mask, question_idxs):
+        '''
+            Support: matrix of supporting word indices
+            Mask: Mask of in-sentence vs. zero-padding
+            Question: vector of word indices
+            Return sentences indices the model deems relevant
+        '''
+        question_vec = T.mean(self.embeddingLayer(question_idxs), axis=1)
+
+        def step(s, m, h, prev_cell):
+            sentence = T.mean(self.embeddingLayer(s) * m, axis=1)
+            in_sentence = T.concatenate([question_vec, sentence])
+
+            hidden_layer, next_cell = self.LSTMLayer(in_sentence, h, prev_cell)
+
+            outputs = self.linear_layer(hidden_layer)
+            prob = layers.SoftMax(outputs)
+            return hidden_layer, next_cell, prob
+
+        if self.reverse:
+            support = support[::-1]  # iterate in reverse
+            mask = mask[::-1]  # iterate in reverse
+
+        [hidden, cells, probs], _ = theano.scan(
+            fn=step,
+            sequences=[support, mask],
+            outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0, None],
+        )
+
+        return probs[:, 0, :]
+
+    def save_params(self, path):
+        assert path is not None
+        print 'Saving params to ', path
+        params = {}
+        for name, layer in self.layers.iteritems():
+            params[name] = layer.get_params()
+        pickle.dump(params, file(path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_params(self, path):
+        assert path is not None
+        print 'Restoring params from ', path
+        params = pickle.load(file(path, 'r'))
+        for name, layer in self.layers.iteritems():
+            layer.set_params(params[name])
+
+
 class embeddingModel(Model):
     '''
     '''
@@ -91,7 +156,7 @@ class embeddingModel(Model):
         print 'Initializing embedding model...'
         self.mean_pool = mean_pool
         input_dim = wv_matrix.shape[0]
-        self.embeddingLayer = layers.wordVectorLayer(wv_matrix)
+        self.embeddingLayer = layers.embeddingLayer(wv_matrix)
         self.LSTMLayer = layers.LSTMLayer(input_dim, lstm_hidden_dim)
         nn_input_dim = 2 * lstm_hidden_dim
 
@@ -139,9 +204,10 @@ class embeddingModel(Model):
         else:
             return hidden[-1]
 
-    def get_answer_probs(self, supporting_indices, question_indices):
-        support = self.embed_support(supporting_indices)
-        question = self.embed_question(question_indices)
+    def get_answer_probs(self, support_sentences, mask, question_idxs):
+        support_idxs = support_sentences[mask > 0].reshape((1, -1))
+        support = self.embed_support(support_idxs)
+        question = self.embed_question(question_idxs)
 
         hidden_1 = self.fc1(T.concatenate([support, question], axis=1))
         hidden_2 = self.fc2(hidden_1)
