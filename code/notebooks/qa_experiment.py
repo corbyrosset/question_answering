@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[123]:
+# In[ ]:
 
 import scriptinit
 import random
@@ -18,7 +18,7 @@ from os.path import join
 import argparse
 
 
-# In[124]:
+# In[ ]:
 
 # Turn on for debugging
 DEBUG = False
@@ -27,7 +27,7 @@ if DEBUG:
     theano.config.exception_verbosity='high'
 
 
-# In[125]:
+# In[ ]:
 
 # variables that don't change between experiments/trials
 constants = {
@@ -39,7 +39,7 @@ constants = {
 }
 
 
-# In[126]:
+# In[ ]:
 
 # step up argument parsing
 parser = argparse.ArgumentParser()
@@ -57,7 +57,7 @@ parser.add_argument('-log', '--logging_path', type=str, required=True)
 parser.add_argument('-me', '--max_epochs', type=int, required=True)
 
 
-# In[202]:
+# In[ ]:
 
 # variables that change between runs
 if util.in_ipython():
@@ -66,7 +66,7 @@ if util.in_ipython():
         'glovedir': '../../data/glove',
         'report_wait': 100,
         'save_wait': 1000,
-        'max_epochs': 50,
+        'max_epochs': 100,
         'wv_dimensions': 50,  # speed up learning by using the smallest GloVe dimension
     }
 
@@ -75,12 +75,12 @@ if util.in_ipython():
         'task_number': 1,  # {1, 3, 5, 17, 19}
 
         # HYPERPARAMETERS
-        'base_lr': 1e-3,
+        'base_lr': 1e-2,
 
         # all of the models
         'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
         'hidden_dim': 128,
-        'l2_reg': 1e-4,
+        'l2_reg': 0.0,
 
 
         # specific to sentence embedding model
@@ -94,7 +94,7 @@ else:
     hyperparams = vars(args)
 
 
-# In[203]:
+# In[ ]:
 
 # load into namespace and log to metadata
 for var, val in hyperparams.iteritems():
@@ -106,7 +106,7 @@ for var, val in constants.iteritems():
     util.metadata(var, val)
 
 
-# In[204]:
+# In[ ]:
 
 # Load Data
 train_ex, _ = get_data(datadir, task_number, test=False)
@@ -121,19 +121,19 @@ train = train_ex[:int(.9 * len(train_ex))]
 dev = train_ex[int(.9 * len(train_ex)):]
 
 
-# In[205]:
+# In[ ]:
 
 # get word_vectors (Using glove for now)
 wv_matrix = word_vectors.get_wv_matrix(wv_dimensions, glovedir)
 
 
-# In[206]:
+# In[ ]:
 
 # initial and setup the attention layer
 r = 0.001
 attention_embedding = np.random.rand(hidden_dim, wv_matrix.shape[1]) * 2 * r - r
 
-attention_model = attentionModel(embeddings=attention_embedding, lstm_hidden_dim=lstm_hidden_dim, reverse=True)
+attention_model = attentionModel(embeddings=attention_embedding, lstm_hidden_dim=lstm_hidden_dim)
 
 # set up the question + facts -> answer model
 if model_type == 'averaging':
@@ -143,7 +143,7 @@ elif model_type == 'sentenceEmbedding':
                             num_classes=wv_matrix.shape[1], mean_pool=mean_pool)
 
 
-# In[207]:
+# In[ ]:
 
 # generate answer probabilities and predictions
 support = T.imatrix()
@@ -153,32 +153,36 @@ hints = T.ivector()
 
 # estimate relevance of each sentence
 relevance_probs = attention_model.get_relevance_probs(support, mask, question_idxs)
-
-# train the qa-model using the hints
-answer_probs = qa_model.get_answer_probs(support[hints.nonzero(), :], mask[hints.nonzero(), :], question_idxs)
-
-# predict without using the hint
 relevant_sentences = support[relevance_probs[:, 1] > 0.5, :]
 relevant_mask = mask[relevance_probs[:, 1] > 0.5, :]
+
+# joint training of question model + attention model
+answer_probs = qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs)
+
+
+# train the qa-model using the hints
+# answer_probs = qa_model.get_answer_probs(support[hints.nonzero(), :], mask[hints.nonzero(), :], question_idxs)
+
+# predict without using the hint
 answer_pred = T.argmax(qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs))
 #answer_pred = T.argmax(qa_model.get_answer_probs(support[hints.nonzero(), :], mask[hints.nonzero(), :], question_idxs))
 
 
-# In[208]:
+# In[ ]:
 
 # define the loss and cost function
 answer = T.ivector()
-loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) - T.mean(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
+loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) - T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
 cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
 
 
-# In[209]:
+# In[ ]:
 
 # optimization
-updates = optimizers.Adagrad(cost, qa_model.params, base_lr=base_lr)
+updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, base_lr=base_lr)
 
 
-# In[210]:
+# In[ ]:
 
 # compile functions to train and evaluate the model
 print 'Compiling predict function'
@@ -220,6 +224,11 @@ experiment.run_experiment()
 
 ## Plot learning curves
 #report(join(logging_path, 'history.cpkl'))
+
+
+# In[ ]:
+
+print len(dev)
 
 
 # In[ ]:
