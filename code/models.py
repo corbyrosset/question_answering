@@ -130,7 +130,10 @@ class attentionModel(object):
             outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0, None],
         )
 
-        return probs[:, 0, :]
+        if self.reverse:
+            return probs[:, 0, :][::-1]
+        else:
+            return probs[:, 0, :]
 
     def save_params(self, path):
         assert path is not None

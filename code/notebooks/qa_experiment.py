@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[215]:
+# In[ ]:
 
 import scriptinit
 import random
@@ -18,16 +18,16 @@ from os.path import join
 import argparse
 
 
-# In[322]:
+# In[ ]:
 
 # Turn on for debugging
-DEBUG = True
+DEBUG = False
 if DEBUG:
     theano.config.optimizer='fast_compile'
     theano.config.exception_verbosity='high'
 
 
-# In[217]:
+# In[ ]:
 
 # variables that don't change between experiments/trials
 constants = {
@@ -40,7 +40,7 @@ constants = {
 }
 
 
-# In[218]:
+# In[ ]:
 
 # step up argument parsing
 parser = argparse.ArgumentParser()
@@ -56,7 +56,7 @@ parser.add_argument('-mp', '--mean_pool', type=int, required=True)
 parser.add_argument('-log', '--logging_path', type=str, required=True)
 
 
-# In[219]:
+# In[ ]:
 
 # variables that change between runs
 if util.in_ipython():
@@ -93,7 +93,7 @@ else:
     hyperparams = vars(args)
 
 
-# In[220]:
+# In[ ]:
 
 # load into namespace and log to metadata
 for var, val in hyperparams.iteritems():
@@ -105,7 +105,7 @@ for var, val in constants.iteritems():
     util.metadata(var, val)
 
 
-# In[301]:
+# In[ ]:
 
 # Load Data
 train_ex, _ = get_data(datadir, task_number, test=False)
@@ -120,13 +120,13 @@ train = train_ex[:int(.9 * len(train_ex))]
 dev = train_ex[int(.9 * len(train_ex)):]
 
 
-# In[295]:
+# In[ ]:
 
 # get word_vectors (Using glove for now)
 wv_matrix = word_vectors.get_wv_matrix(wv_dimensions, glovedir)
 
 
-# In[286]:
+# In[ ]:
 
 # initial and setup the attention layer
 r = 0.001
@@ -142,7 +142,7 @@ elif model_type == 'sentenceEmbedding':
                             num_classes=wv_matrix.shape[1], mean_pool=mean_pool)
 
 
-# In[316]:
+# In[ ]:
 
 # generate answer probabilities and predictions
 support = T.imatrix()
@@ -158,25 +158,25 @@ answer_probs = qa_model.get_answer_probs(support[hints > 0, :], mask[hints > 0, 
 
 # predict without using the hint
 relevant_sentences = support[relevance_probs[:, 1] > 0.5, :]
-relevant_mask = mask[rel_probs[:, 1] > 0.5, :]
+relevant_mask = mask[relevance_probs[:, 1] > 0.5, :]
 answer_pred = T.argmax(qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs))
 
 
-# In[317]:
+# In[ ]:
 
 # define the loss and cost function
 answer = T.ivector()
-loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) - T.mean(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
-cost = loss + l2_reg * layers.l2_penalty(model.params)
+loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) #- T.mean(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
+cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
 
 
-# In[318]:
+# In[ ]:
 
 # optimization
-updates = optimizers.Adagrad(cost, model.params, base_lr=base_lr)
+updates = optimizers.Adagrad(cost, qa_model.params, base_lr=base_lr)
 
 
-# In[323]:
+# In[ ]:
 
 # compile functions to train and evaluate the model
 print 'Compiling predict function'
@@ -196,12 +196,12 @@ qa_model.backprop = theano.function(
                     updates=updates)
 
 
-# In[14]:
+# In[ ]:
 
 # Set up the experiment object
 controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max_epochs=max_epochs, path=logging_path)]
 
-dset_samples =  len(dev)
+dset_samples = len(dev)
 observers = [ObjectiveObserver(dset_samples=dset_samples, report_wait=report_wait),
              AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait)]
 
