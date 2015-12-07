@@ -87,9 +87,9 @@ class attentionModel(object):
     '''
         TODO: write README
     '''
-    def __init__(self, embeddings, lstm_hidden_dim, reverse=True):
+    def __init__(self, embeddings, lstm_hidden_dim):
         print 'Initializing attention model...'
-        self.reverse = reverse
+        # self.reverse = reverse
         input_dim = 2 * embeddings.shape[0]
         self.embeddingLayer = layers.embeddingLayer(embeddings)
         self.LSTMLayer = layers.LSTMLayer(input_dim, lstm_hidden_dim)
@@ -120,9 +120,9 @@ class attentionModel(object):
             prob = layers.SoftMax(outputs)
             return hidden_layer, next_cell, prob
 
-        if self.reverse:
-            support = support[::-1]  # iterate in reverse
-            mask = mask[::-1]  # iterate in reverse
+        # if self.reverse:
+        #     support = support[::-1]  # iterate in reverse
+        #     mask = mask[::-1]  # iterate in reverse
 
         [hidden, cells, probs], _ = theano.scan(
             fn=step,
@@ -130,10 +130,11 @@ class attentionModel(object):
             outputs_info=[self.LSTMLayer.h0, self.LSTMLayer.cell_0, None],
         )
 
-        if self.reverse:
-            return probs[:, 0, :][::-1]
-        else:
-            return probs[:, 0, :]
+        # if self.reverse:
+        #     return probs[:, 0, :][::-1]
+        # else:
+        #     return probs[:, 0, :]
+        return probs[:, 0, :]
 
     def save_params(self, path):
         assert path is not None
