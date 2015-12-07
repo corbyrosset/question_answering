@@ -1,3 +1,4 @@
+import sys
 import abc
 from collections import defaultdict
 import cPickle as pickle
@@ -43,7 +44,7 @@ class Experiment(object):
 
             # TODO: Figure out minibatches/ accumulate gradients
             # TODO: Specific to current dataset format!
-            for ex in train_copy:
+            for ex in util.verboserate(train_copy):
                 self.model.backprop(ex.sentences, ex.mask, ex.question,
                                     ex.answer, ex.hints)
 
@@ -74,6 +75,7 @@ class Experiment(object):
         if len(report) > 0:
             print ', '.join(['{}: {:.3f}'.format('.'.join(name), val)
                             for name, val in report])
+            sys.stdout.flush()
             with open(join(self.path, 'history.cpkl'), 'w') as f:
                 pickle.dump(dict(self.history), f)
 

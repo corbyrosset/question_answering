@@ -208,7 +208,7 @@ class embeddingModel(Model):
             return hidden[-1]
 
     def get_answer_probs(self, support_sentences, mask, question_idxs):
-        support_idxs = support_sentences[mask > 0].reshape((1, -1))
+        support_idxs = support_sentences[mask.nonzero()].ravel()
         support = self.embed_support(support_idxs)
         question = self.embed_question(question_idxs)
 
