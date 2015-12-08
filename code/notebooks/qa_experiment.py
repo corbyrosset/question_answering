@@ -8,6 +8,7 @@ import random
 import numpy as np
 import theano
 import theano.tensor as T
+from theano.ifelse import ifelse
 from models import *
 from data_import import *
 from util import *
@@ -80,7 +81,7 @@ if util.in_ipython():
         # all of the models
         'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
         'hidden_dim': 128,
-        'l2_reg': 0.0,
+        'l2_reg': 1e-5,
 
 
         # specific to sentence embedding model
@@ -159,19 +160,20 @@ def get_word_idxs(relevant_sentence_idxs, support_, mask_):
     rel_mask = mask_[relevant_sentence_idxs, :]
     return rel_support[rel_mask.nonzero()].ravel()
 
-# joint training of question model + attention model
-max_idx = T.argmax(relevance_probs[:, 1]).reshape((1, ))
-#prob_idxs = (relevance_probs[(T.arange(relevance_probs.shape[0]) != max_idx), 1] > 0.5) # TODO: get this working for > 1 supporting fact
-#est_idxs = T.concatenate([max_idx, prob_idxs])
+# By default, the attention model retrieves any sentence with prob > 0.5 under the model
+# If no sentence exists, it returns the top two sentences in chronological order
+max_idxs = T.sort(T.argsort(relevance_probs[:, 1])[-2:])  
+prob_idxs = T.arange(relevance_probs.shape[0])[T.nonzero(relevance_probs[:, 1] > 0.5)]
+est_idxs = ifelse(T.lt(T.sum(relevance_probs[:, 1] > 0.5), 1), max_idxs, prob_idxs)
 
-est_rel_facts = get_word_idxs(max_idx, support, mask)
+
+# joint training of question model + attention model
+est_rel_facts = get_word_idxs(est_idxs, support, mask)
 answer_probs = qa_model.get_answer_probs(est_rel_facts, question_idxs)
 
-
-
 # train the qa-model using the hints
-#true_rel_facts = get_word_idxs(hints.nonzero(), support, mask)
-#answer_probs = qa_model.get_answer_probs(true_rel_facts, question_idxs)
+# true_rel_facts = get_word_idxs(hints.nonzero(), support, mask)
+# answer_probs = qa_model.get_answer_probs(true_rel_facts, question_idxs)
 
 # predict without using the hint
 answer_pred = T.argmax(qa_model.get_answer_probs(est_rel_facts, question_idxs))
@@ -192,7 +194,7 @@ param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
 # In[ ]:
 
 # optimization
-updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, base_lr=base_lr)
+updates = optimizers.RMSProp(cost, qa_model.params + attention_model.params, base_lr=base_lr)
 
 
 # In[ ]:
