@@ -81,7 +81,7 @@ if util.in_ipython():
         # all of the models
         'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
         'hidden_dim': 128,
-        'l2_reg': 1e-5,
+        'l2_reg': 1e-7,
 
 
         # specific to sentence embedding model
@@ -194,7 +194,7 @@ param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
 # In[ ]:
 
 # optimization
-updates = optimizers.RMSProp(cost, qa_model.params + attention_model.params, base_lr=base_lr)
+updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, base_lr=base_lr)
 
 
 # In[ ]:
@@ -215,6 +215,9 @@ qa_model.backprop = theano.function(
                     inputs=[support, mask, question_idxs, answer, hints],
                     outputs=[loss, answer_probs, qa_nll, attention_nll],
                     updates=updates)
+
+print 'Compiling diagnostic function'
+qa_model.diagnostic = theano.function(inputs=[support, mask, question_idxs], outputs=[answer_pred, est_idxs])
 
 
 # In[ ]:
@@ -239,4 +242,10 @@ experiment.run_experiment()
 
 ## Plot learning curves
 #report(join(logging_path, 'history.cpkl'))
+
+
+# In[ ]:
+
+#from diagnostics import *
+#error_analysis(dev, qa_model, word_vectors)
 
