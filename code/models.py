@@ -208,9 +208,8 @@ class embeddingModel(Model):
         else:
             return hidden[-1]
 
-    def get_answer_probs(self, support_sentences, mask, question_idxs):
-        support_idxs = support_sentences[mask.nonzero()].ravel()
-        support = self.embed_support(support_idxs)
+    def get_answer_probs(self, supporting_idxs, question_idxs):
+        support = self.embed_support(supporting_idxs)
         question = self.embed_question(question_idxs)
 
         hidden_1 = self.fc1(T.concatenate([support, question], axis=1))
