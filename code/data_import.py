@@ -206,57 +206,58 @@ def file_to_relevant_examples(file):
 def tokenize(sentence):
     return [token.lower() for token in re.findall(r"[\w']+|[.,!?;]", sentence)]
 
-# Returns (train_examples, test_examples)
-def get_data(datadir, tasknum, test=False):
-    if tasknum == 1:
-        train_examples = file_to_examples(datadir+"qa1_single-supporting-fact_train.txt")
-        test_examples = file_to_examples(datadir+"qa1_single-supporting-fact_test.txt")
-    elif tasknum == 5:
-        train_examples = file_to_examples(datadir+"qa5_three-arg-relations_train.txt")
-        test_examples = file_to_examples(datadir+"qa5_three-arg-relations_test.txt")
-    elif tasknum == 7:
-        train_examples = file_to_examples(datadir+"qa7_counting_train.txt")
-        test_examples = file_to_examples(datadir+"qa7_counting_test.txt")
-    elif tasknum == 17:
-        train_examples = file_to_examples(datadir+"qa17_positional-reasoning_train.txt")
-        test_examples = file_to_examples(datadir+"qa17_positional-reasoning_test.txt")
-    elif tasknum == 19:
-        train_examples = file_to_examples(datadir+"qa19_path-finding_train.txt")
-        test_examples = file_to_examples(datadir+"qa19_path-finding_test.txt")
+def get_file_path(datadir, tasknum, test=False):
+    fnames = {
+        1:"single-supporting-fact",
+        2:"two-supporting-facts",
+        3:"three-supporting-facts",
+        4:"two-arg-relations",
+        5:"three-arg-relations",
+        6:"yes-no-questions",
+        7:"counting",
+        8:"lists-sets",
+        9:"simple-negation",
+        10:"indefinite-knowledge",
+        11:"basic-coreference",
+        12:"conjunction",
+        13:"compound-coreference",
+        14:"time-reasoning",
+        15:"basic-deduction",
+        16:"basic-induction",
+        17:"positional-reasoning",
+        18:"size-reasoning",
+        19:"path-finding",
+        20:"agents-motivations"
+    }
+    if(tasknum < 1 or tasknum > 20):
+        raise NotImplementedError("Task %d is not valid" % tasknum)
+
+    traintest = "test" if test else "train"
+    fname = ("qa%d_%s_%s.txt") % (tasknum, fnames[tasknum], traintest)
+    return datadir + fname
+
+def get_relevant_data(datadir, tasknum, test=False):
+    train_examples = file_to_relevant_examples(get_file_path(datadir, tasknum, False))
+    test_examples = file_to_relevant_examples(get_file_path(datadir, tasknum, True))
+    
+    if tasknum == 19:
         # hack to replace directions with their actual words
         fix_directions(train_examples)
         fix_directions(test_examples)
-    else:
-        raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
-
     if test:
         print 'WARNING: Loading TEST SET'
         return train_examples, test_examples
     else:
         return train_examples, None
 
-def get_relevant_data(datadir, tasknum, test=False):
-    if tasknum == 1:
-        train_examples = file_to_relevant_examples(datadir+"qa1_single-supporting-fact_train.txt")
-        test_examples = file_to_relevant_examples(datadir+"qa1_single-supporting-fact_test.txt")
-    elif tasknum == 5:
-        train_examples = file_to_relevant_examples(datadir+"qa5_three-arg-relations_train.txt")
-        test_examples = file_to_relevant_examples(datadir+"qa5_three-arg-relations_test.txt")
-    elif tasknum == 7:
-        train_examples = file_to_relevant_examples(datadir+"qa7_counting_train.txt")
-        test_examples = file_to_relevant_examples(datadir+"qa7_counting_test.txt")
-    elif tasknum == 17:
-        train_examples = file_to_relevant_examples(datadir+"qa17_positional-reasoning_train.txt")
-        test_examples = file_to_relevant_examples(datadir+"qa17_positional-reasoning_test.txt")
-    elif tasknum == 19:
-        train_examples = file_to_relevant_examples(datadir+"qa19_path-finding_train.txt")
-        test_examples = file_to_relevant_examples(datadir+"qa19_path-finding_test.txt")
+def get_data(datadir, tasknum, test=False):
+    train_examples = file_to_examples(get_file_path(datadir, tasknum, False))
+    test_examples = file_to_examples(get_file_path(datadir, tasknum, True))
+    
+    if tasknum == 19:
         # hack to replace directions with their actual words
         fix_directions(train_examples)
         fix_directions(test_examples)
-    else:
-        raise NotImplementedError("Task %d has not been implemented yet" % tasknum)
-
     if test:
         print 'WARNING: Loading TEST SET'
         return train_examples, test_examples
