@@ -153,27 +153,40 @@ hints = T.ivector()
 
 # estimate relevance of each sentence
 relevance_probs = attention_model.get_relevance_probs(support, mask, question_idxs)
-relevant_sentences = support[relevance_probs[:, 1] > 0.5, :]
-relevant_mask = mask[relevance_probs[:, 1] > 0.5, :]
+
+def get_word_idxs(relevant_sentence_idxs, support_, mask_):
+    rel_support = support_[relevant_sentence_idxs, :]
+    rel_mask = mask_[relevant_sentence_idxs, :]
+    return rel_support[rel_mask.nonzero()].ravel()
 
 # joint training of question model + attention model
-answer_probs = qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs)
+max_idx = T.argmax(relevance_probs[:, 1]).reshape((1, ))
+#prob_idxs = (relevance_probs[(T.arange(relevance_probs.shape[0]) != max_idx), 1] > 0.5) # TODO: get this working for > 1 supporting fact
+#est_idxs = T.concatenate([max_idx, prob_idxs])
+
+est_rel_facts = get_word_idxs(max_idx, support, mask)
+answer_probs = qa_model.get_answer_probs(est_rel_facts, question_idxs)
+
 
 
 # train the qa-model using the hints
-# answer_probs = qa_model.get_answer_probs(support[hints.nonzero(), :], mask[hints.nonzero(), :], question_idxs)
+#true_rel_facts = get_word_idxs(hints.nonzero(), support, mask)
+#answer_probs = qa_model.get_answer_probs(true_rel_facts, question_idxs)
 
 # predict without using the hint
-answer_pred = T.argmax(qa_model.get_answer_probs(relevant_sentences, relevant_mask, question_idxs))
-#answer_pred = T.argmax(qa_model.get_answer_probs(support[hints.nonzero(), :], mask[hints.nonzero(), :], question_idxs))
+answer_pred = T.argmax(qa_model.get_answer_probs(est_rel_facts, question_idxs))
+#answer_pred = T.argmax(qa_model.get_answer_probs(true_rel_facts, question_idxs))
 
 
 # In[ ]:
 
 # define the loss and cost function
-answer = T.ivector()
-loss = -T.mean(T.log(answer_probs)[T.arange(answer.shape[0]), answer]) - T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
+answer = T.iscalar()
+qa_nll = -T.log(answer_probs)[0, answer]
+attention_nll = -T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
+loss = qa_nll + attention_nll
 cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
+param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
 
 
 # In[ ]:
@@ -198,7 +211,7 @@ qa_model.objective = theano.function(
 print 'Compiling backprop function'
 qa_model.backprop = theano.function(
                     inputs=[support, mask, question_idxs, answer, hints],
-                    outputs=[loss, answer_probs],
+                    outputs=[loss, answer_probs, qa_nll, attention_nll],
                     updates=updates)
 
 
@@ -224,14 +237,4 @@ experiment.run_experiment()
 
 ## Plot learning curves
 #report(join(logging_path, 'history.cpkl'))
-
-
-# In[ ]:
-
-print len(dev)
-
-
-# In[ ]:
-
-
 
