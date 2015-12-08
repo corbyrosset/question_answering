@@ -46,7 +46,7 @@ class Experiment(object):
             # TODO: Specific to current dataset format!
             for ex in util.verboserate(train_copy):
                 self.model.backprop(ex.sentences, ex.mask, ex.question,
-                                    ex.answer, ex.hints)
+                                    ex.answer[0], ex.hints)
 
                 for controller in self.controllers:
                     controller.control(self)
@@ -155,7 +155,7 @@ class ObjectiveObserver(Observer):
                 vals = []
                 for ex in util.verboserate(sample):
                     vals.append(experiment.model.objective(ex.sentences,
-                                ex.mask, ex.question, ex.answer, ex.hints))
+                                ex.mask, ex.question, ex.answer[0], ex.hints))
                 return np.mean(vals)
 
             # Note that we never report exact on train
