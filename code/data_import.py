@@ -12,11 +12,11 @@ class example_ind(object):
             model, but whose elements are integer indicies into a word vector
             matrix.
         '''
-        self.sentences = sentences
-        self.mask = mask
-        self.question = question
-        self.answer = answer
-        self.hints = hints
+        self.sentences = sentences  # stored as a matrix, rows as sentences. Cols are zero-padded
+        self.mask = mask            # boolean matrix M_{ij} = 1 if word j is in sentence i (0 for padding)
+        self.question = question    # vector of indices
+        self.answer = answer        # vector of indices
+        self.hints = hints          # 0-1 vector equal to the length of the # of sentences. 1 iff sentence i is relevant
 
     def __repr__(self):
         return ("Training example: \n\t Info: %s \n\t Question: %s \n\t Answer: %s \n\t Hint: %s \n"
