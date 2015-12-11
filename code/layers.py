@@ -54,7 +54,6 @@ class FullyConnected(object):
             p.set_value(params[p.name], borrow=True)
 
 
-
 def orth(A):
     '''
         Returns an orthonormal basis for A
