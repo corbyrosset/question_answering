@@ -141,7 +141,22 @@ if model_type == 'averaging':
     qa_model = averagingModel(wv_matrix, hidden_dim=hidden_dim, num_classes=wv_matrix.shape[1])
 elif model_type == 'sentenceEmbedding':
     qa_model = embeddingModel(wv_matrix, lstm_hidden_dim=lstm_hidden_dim, nn_hidden_dim=hidden_dim,
-                            num_classes=wv_matrix.shape[1], mean_pool=mean_pool)
+                              num_classes=wv_matrix.shape[1], mean_pool=mean_pool)
+
+
+# In[ ]:
+
+# set up saving and loading 
+def save_model(path):
+    attention_model.save_params(join(path, 'attention_params.cpkl'))
+    qa_model.save_params(join(path, 'qa_params.cpkl'))
+
+def load_model(path):
+    attention_model.load_params(join(path, 'attention_params.cpkl'))
+    qa_model.load_params(join(path, 'qa_params.cpkl'))
+
+qa_model.save_model = save_model
+qa_model.load_model = load_model
 
 
 # In[ ]:
@@ -184,10 +199,13 @@ answer_pred = T.argmax(qa_model.get_answer_probs(est_rel_facts, question_idxs))
 
 # define the loss and cost function
 answer = T.iscalar()
+
 qa_nll = -T.log(answer_probs)[0, answer]
 attention_nll = -T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
 loss = qa_nll + attention_nll
+
 cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
+
 param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
 
 
@@ -216,6 +234,7 @@ qa_model.backprop = theano.function(
                     outputs=[loss, answer_probs, qa_nll, attention_nll],
                     updates=updates)
 
+# Function needed for error analysis
 print 'Compiling diagnostic function'
 qa_model.diagnostic = theano.function(inputs=[support, mask, question_idxs], outputs=[answer_pred, est_idxs])
 
@@ -246,6 +265,13 @@ experiment.run_experiment()
 
 # In[ ]:
 
-#from diagnostics import *
-#error_analysis(dev, qa_model, word_vectors)
+## Error Analysis
+model_path = 'logging_dir'
+qa_model.load_model(model_path)
+
+
+# In[ ]:
+
+from diagnostics import *
+error_analysis(dev, qa_model, word_vectors)
 

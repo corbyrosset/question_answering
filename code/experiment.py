@@ -124,7 +124,7 @@ class BasicController(Controller):
 
         if experiment.steps % self.save_wait == 0 and experiment.steps != 0:
             print 'saving params...'
-            experiment.model.save_params(join(self.path, 'params.cpkl'))
+            experiment.model.save_model(self.path)
 
 
 class SpeedObserver(Observer):

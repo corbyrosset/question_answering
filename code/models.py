@@ -23,66 +23,6 @@ class Model(object):
     def save_params(self, path):
         raise NotImplementedError()
 
-
-class averagingModel(Model):
-    '''
-        Simple 1-hidden layer neural network
-        Input: should be symbolic variables
-        wv_matrix: should be an initialized numpy matrix
-    '''
-    def __init__(self, wv_matrix, hidden_dim, num_classes):
-        print 'Initializing averaging model...'
-        # just concatenate vector averages
-        input_dim = 2 * wv_matrix.shape[0]
-
-        # initialize layers
-        self.embeddingLayer = layers.wordVectorLayer(wv_matrix)
-
-        self.fc1 = layers.FullyConnected(input_dim=input_dim,
-                                         output_dim=hidden_dim,
-                                         activation='relu')
-
-        self.fc2 = layers.FullyConnected(input_dim=hidden_dim,
-                                         output_dim=hidden_dim,
-                                         activation='relu')
-
-        self.linear_layer = layers.FullyConnected(input_dim=hidden_dim,
-                                                  output_dim=num_classes,
-                                                  activation=None)
-
-        self.layers = {'embeddingLayer':  self.embeddingLayer, 'fc1' : self.fc1, 
-                        'fc2': self.fc2, 'linear': self.linear_layer}
-        self.params = self.embeddingLayer.params + self.fc1.params + self.fc2.params + self.linear_layer.params
-
-
-    def get_answer_probs(self, supporting_indices, question_indices):
-        # simple averaging of the representations
-        support = T.mean(self.embeddingLayer(supporting_indices), axis=1)
-        question = T.mean(self.embeddingLayer(question_indices), axis=1)
-
-        hidden_1 = self.fc1(T.concatenate([support, question]))
-        hidden_2 = self.fc2(hidden_1)
-        outputs = self.linear_layer(hidden_2)
-        probs = layers.SoftMax(outputs)
-
-        return probs
-
-    def save_params(self, path):
-        assert path is not None
-        print 'Saving params to ', path
-        params = {}
-        for name, layer in self.layers.iteritems():
-            params[name] = layer.get_params()
-        pickle.dump(params, file(path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-
-    def load_params(self, path):
-        assert path is not None
-        print 'Restoring params from ', path
-        params = pickle.load(file(path, 'r'))
-        for name, layer in self.layers.iteritems():
-            layer.set_params(params[name])
-
-
 class attentionModel(object):
     '''
         TODO: write README
@@ -213,6 +153,66 @@ class embeddingModel(Model):
         question = self.embed_question(question_idxs)
 
         hidden_1 = self.fc1(T.concatenate([support, question], axis=1))
+        hidden_2 = self.fc2(hidden_1)
+        outputs = self.linear_layer(hidden_2)
+        probs = layers.SoftMax(outputs)
+
+        return probs
+
+    def save_params(self, path):
+        assert path is not None
+        print 'Saving params to ', path
+        params = {}
+        for name, layer in self.layers.iteritems():
+            params[name] = layer.get_params()
+        pickle.dump(params, file(path, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+    def load_params(self, path):
+        assert path is not None
+        print 'Restoring params from ', path
+        params = pickle.load(file(path, 'r'))
+        for name, layer in self.layers.iteritems():
+            layer.set_params(params[name])
+
+
+
+class averagingModel(Model):
+    '''
+        Simple 1-hidden layer neural network
+        Input: should be symbolic variables
+        wv_matrix: should be an initialized numpy matrix
+    '''
+    def __init__(self, wv_matrix, hidden_dim, num_classes):
+        print 'Initializing averaging model...'
+        # just concatenate vector averages
+        input_dim = 2 * wv_matrix.shape[0]
+
+        # initialize layers
+        self.embeddingLayer = layers.wordVectorLayer(wv_matrix)
+
+        self.fc1 = layers.FullyConnected(input_dim=input_dim,
+                                         output_dim=hidden_dim,
+                                         activation='relu')
+
+        self.fc2 = layers.FullyConnected(input_dim=hidden_dim,
+                                         output_dim=hidden_dim,
+                                         activation='relu')
+
+        self.linear_layer = layers.FullyConnected(input_dim=hidden_dim,
+                                                  output_dim=num_classes,
+                                                  activation=None)
+
+        self.layers = {'embeddingLayer':  self.embeddingLayer, 'fc1' : self.fc1, 
+                        'fc2': self.fc2, 'linear': self.linear_layer}
+        self.params = self.embeddingLayer.params + self.fc1.params + self.fc2.params + self.linear_layer.params
+
+
+    def get_answer_probs(self, supporting_indices, question_indices):
+        # simple averaging of the representations
+        support = T.mean(self.embeddingLayer(supporting_indices), axis=1)
+        question = T.mean(self.embeddingLayer(question_indices), axis=1)
+
+        hidden_1 = self.fc1(T.concatenate([support, question]))
         hidden_2 = self.fc2(hidden_1)
         outputs = self.linear_layer(hidden_2)
         probs = layers.SoftMax(outputs)
