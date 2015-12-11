@@ -186,7 +186,12 @@ class AccuracyObserver(Observer):
         return None
 
 
-def report(path='history.cpkl'):
+def report(path='history.cpkl', tn=0, sns=True):
+    if sns:
+        import seaborn as sns
+        sns.set_style('whitegrid')
+        sns.set_style('whitegrid',{'fontsize':50})
+        sns.set_context('poster')
     with open(path) as f:
         logged_data = pickle.load(f)
 
@@ -195,18 +200,22 @@ def report(path='history.cpkl'):
         history.set_nested(name, val)
 
     num_subplots = len(history)
-    cols = 4  # 4 columns total
-    rows = num_subplots / cols + 1
+    cols = 2  # 2 panels for Objective and Accuracy
+    rows = 1
 
-    fig = plt.figure()
-    fig.subplots_adjust(wspace=0.1, hspace=0.0)  # no margin between subplots
+    fig = plt.figure(figsize=(12,8))
+    fig.subplots_adjust(wspace=0.3, hspace=0.2)  # room for labels [Objective, Accuracy]
+    colors = [sns.xkcd_rgb['blue'], sns.xkcd_rgb['red']]
+
 
     # Here we assume that history is only two levels deep
     for k, (subplot_name, trend_lines) in enumerate(history.iteritems()):
         plt.subplot(rows, cols, k + 1)
-        plt.title(subplot_name)
-        for name, (timestamps, values) in trend_lines.iteritems():
-            plt.plot(timestamps, values, label=name)
-        plt.legend()
+        plt.ylabel(subplot_name.capitalize())
+        plt.xlabel('Epoch')
+        for i, (name, (timestamps, values)) in enumerate(trend_lines.iteritems()):
+            plt.plot(timestamps, values, label=name, color=colors[i])
+        plt.suptitle('Task number %d' % tn)
+        plt.legend(loc='best')
 
     plt.show()
