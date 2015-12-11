@@ -40,7 +40,7 @@ constants = {
 }
 
 
-# In[ ]:
+# In[123]:
 
 # step up argument parsing
 parser = argparse.ArgumentParser()
@@ -50,6 +50,7 @@ parser.add_argument('-lr', '--base_lr', type=float, required=True)
 parser.add_argument('-mt', '--model_type', type=str, required=True)
 parser.add_argument('-hd', '--hidden_dim', type=int, required=True)
 parser.add_argument('-l2', '--l2_reg', type=float, required=True)
+parser.add_argument('-attn', '--attention', type=int,required=True)
 
 parser.add_argument('-lhd', '--lstm_hidden_dim', type=int, required=True)
 parser.add_argument('-mp', '--mean_pool', type=int, required=True)

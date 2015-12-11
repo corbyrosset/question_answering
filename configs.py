@@ -10,7 +10,7 @@ basic_experiment = {
     'hd': 128,
     'l2': [1e-7],
 
-    'attention': [0, 1],  # use attention model or not
+    'attn': [0, 1],  # use attention model or not
 
     # specific to sentence embedding model
     'lhd': 128,
