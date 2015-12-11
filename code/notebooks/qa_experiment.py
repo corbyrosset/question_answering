@@ -75,18 +75,21 @@ if util.in_ipython():
         # data and logging
         'task_number': 1,  # {1, 3, 5, 17, 19}
 
-        # HYPERPARAMETERS
+        # hyperparams
         'base_lr': 1e-2,
 
         # all of the models
         'model_type': 'sentenceEmbedding',  # one of |sentenceEmbedding| or |averaging|
         'hidden_dim': 128,
         'l2_reg': 1e-7,
+        
+        # whether the model uses attention to choose what sentences to condition on
+        'attention': False,
 
 
         # specific to sentence embedding model
         'lstm_hidden_dim': 128,
-        'mean_pool': False,
+        'mean_pool': True,
         
         'logging_path': 'logging_dir', 
     }
@@ -110,9 +113,10 @@ for var, val in constants.iteritems():
 # In[ ]:
 
 # Load Data
-train_ex, _ = get_data(datadir, task_number, test=False)
+train_ex, test_ex = get_data(datadir, task_number, test=True)
 word_vectors = wordVectors(train_ex)
 train_ex = examples_to_example_ind(word_vectors, train_ex)  # get examples in numerical format
+test_ex = examples_to_example_ind(word_vectors, test_ex)
 
 # shuffle data
 random.shuffle(train_ex)
@@ -131,10 +135,10 @@ wv_matrix = word_vectors.get_wv_matrix(wv_dimensions, glovedir)
 # In[ ]:
 
 # initial and setup the attention layer
-r = 0.001
-attention_embedding = np.random.rand(hidden_dim, wv_matrix.shape[1]) * 2 * r - r
-
-attention_model = attentionModel(embeddings=attention_embedding, lstm_hidden_dim=lstm_hidden_dim)
+if attention:
+    r = 0.001
+    attention_embedding = np.random.rand(hidden_dim, wv_matrix.shape[1]) * 2 * r - r
+    attention_model = attentionModel(embeddings=attention_embedding, lstm_hidden_dim=lstm_hidden_dim)
 
 # set up the question + facts -> answer model
 if model_type == 'averaging':
@@ -148,11 +152,13 @@ elif model_type == 'sentenceEmbedding':
 
 # set up saving and loading 
 def save_model(path):
-    attention_model.save_params(join(path, 'attention_params.cpkl'))
+    if attention:
+        attention_model.save_params(join(path, 'attention_params.cpkl'))
     qa_model.save_params(join(path, 'qa_params.cpkl'))
 
 def load_model(path):
-    attention_model.load_params(join(path, 'attention_params.cpkl'))
+    if attention:
+        attention_model.load_params(join(path, 'attention_params.cpkl'))
     qa_model.load_params(join(path, 'qa_params.cpkl'))
 
 qa_model.save_model = save_model
@@ -167,22 +173,26 @@ mask = T.imatrix()
 question_idxs = T.ivector()
 hints = T.ivector()
 
-# estimate relevance of each sentence
-relevance_probs = attention_model.get_relevance_probs(support, mask, question_idxs)
-
 def get_word_idxs(relevant_sentence_idxs, support_, mask_):
     rel_support = support_[relevant_sentence_idxs, :]
     rel_mask = mask_[relevant_sentence_idxs, :]
     return rel_support[rel_mask.nonzero()].ravel()
 
-# By default, the attention model retrieves any sentence with prob > 0.5 under the model
-# If no sentence exists, it returns the top two sentences in chronological order
-max_idxs = T.sort(T.argsort(relevance_probs[:, 1])[-2:])  
-prob_idxs = T.arange(relevance_probs.shape[0])[T.nonzero(relevance_probs[:, 1] > 0.5)]
-est_idxs = ifelse(T.lt(T.sum(relevance_probs[:, 1] > 0.5), 1), max_idxs, prob_idxs)
+if attention:
+    # estimate relevance of each sentence
+    relevance_probs = attention_model.get_relevance_probs(support, mask, question_idxs)
+
+    # By default, the attention model retrieves any sentence with prob > 0.5 under the model
+    # If no sentence exists, it returns the top two sentences in chronological order
+    max_idxs = T.sort(T.argsort(relevance_probs[:, 1])[-2:])  
+    prob_idxs = T.arange(relevance_probs.shape[0])[T.nonzero(relevance_probs[:, 1] > 0.5)]
+    est_idxs = ifelse(T.lt(T.sum(relevance_probs[:, 1] > 0.5), 1), max_idxs, prob_idxs)
+else:
+    est_idxs = T.arange(support.shape[0])
 
 
 # joint training of question model + attention model
+# if no attention, train on all of the sentences
 est_rel_facts = get_word_idxs(est_idxs, support, mask)
 answer_probs = qa_model.get_answer_probs(est_rel_facts, question_idxs)
 
@@ -199,20 +209,26 @@ answer_pred = T.argmax(qa_model.get_answer_probs(est_rel_facts, question_idxs))
 
 # define the loss and cost function
 answer = T.iscalar()
-
 qa_nll = -T.log(answer_probs)[0, answer]
-attention_nll = -T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
-loss = qa_nll + attention_nll
 
-cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
-
-param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
+if attention:
+    attention_nll = -T.sum(T.log(relevance_probs)[T.arange(hints.shape[0]), hints])
+    loss = qa_nll + attention_nll
+    cost = loss + l2_reg * layers.l2_penalty(qa_model.params + attention_model.params)
+    param_norms = layers.l2_penalty(qa_model.params + attention_model.params)
+else:
+    loss = qa_nll
+    cost = loss + l2_reg * layers.l2_penalty(qa_model.params)
+    param_norms = layers.l2_penalty(qa_model.params)
 
 
 # In[ ]:
 
 # optimization
-updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, base_lr=base_lr)
+if attention:
+    updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, base_lr=base_lr)
+else:
+    updates = optimizers.Adagrad(cost, qa_model.params, base_lr=base_lr)
 
 
 # In[ ]:
@@ -221,18 +237,21 @@ updates = optimizers.Adagrad(cost, qa_model.params + attention_model.params, bas
 print 'Compiling predict function'
 qa_model.predict = theano.function(
                    inputs = [support, mask, question_idxs],
-                   outputs = answer_pred)
+                   outputs = answer_pred,
+                    on_unused_input='ignore')
 
 print 'Compiling objective function'
 qa_model.objective = theano.function(
                     inputs = [support, mask, question_idxs, answer, hints],
-                    outputs = loss)
+                    outputs = loss,
+                    on_unused_input='ignore')
 
 print 'Compiling backprop function'
 qa_model.backprop = theano.function(
                     inputs=[support, mask, question_idxs, answer, hints],
-                    outputs=[loss, answer_probs, qa_nll, attention_nll],
-                    updates=updates)
+                    outputs=[loss, answer_probs],
+                    updates=updates, 
+                    on_unused_input='ignore')
 
 # Function needed for error analysis
 print 'Compiling diagnostic function'
@@ -246,7 +265,8 @@ controllers = [BasicController(report_wait=report_wait, save_wait=save_wait, max
 
 dset_samples = len(dev)
 observers = [ObjectiveObserver(dset_samples=dset_samples, report_wait=report_wait),
-             AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait)]
+             AccuracyObserver(dset_samples=dset_samples, report_wait=report_wait), 
+             TestObserver(test_dset=test_ex, report_wait=report_wait)]
 
 experiment = Experiment(qa_model, train, dev, controllers=controllers, observers=observers, path=logging_path)
 
@@ -265,13 +285,13 @@ experiment.run_experiment()
 
 # In[ ]:
 
-## Error Analysis
-model_path = 'logging_dir'
-qa_model.load_model(model_path)
+# # Error Analysis
+# model_path = 'logging_dir'
+# qa_model.load_model(model_path)
 
 
 # In[ ]:
 
-from diagnostics import *
-error_analysis(dev, qa_model, word_vectors)
+# from diagnostics import *
+# error_analysis(dev, qa_model, word_vectors)
 

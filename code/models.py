@@ -175,7 +175,6 @@ class embeddingModel(Model):
             layer.set_params(params[name])
 
 
-
 class averagingModel(Model):
     '''
         Simple 1-hidden layer neural network
@@ -202,10 +201,9 @@ class averagingModel(Model):
                                                   output_dim=num_classes,
                                                   activation=None)
 
-        self.layers = {'embeddingLayer':  self.embeddingLayer, 'fc1' : self.fc1, 
-                        'fc2': self.fc2, 'linear': self.linear_layer}
+        self.layers = {'embeddingLayer':  self.embeddingLayer, 'fc1': self.fc1,
+                       'fc2': self.fc2, 'linear': self.linear_layer}
         self.params = self.embeddingLayer.params + self.fc1.params + self.fc2.params + self.linear_layer.params
-
 
     def get_answer_probs(self, supporting_indices, question_indices):
         # simple averaging of the representations
