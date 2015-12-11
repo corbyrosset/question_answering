@@ -1,4 +1,7 @@
-Place the babi dataset files in this folder. Currently, there should be:
+Place the babi dataset files in this folder.
+(can be downloaded here: http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz)
+
+Currently, there should be:
 
 qa1_single-supporting-fact_test.txt
 qa1_single-supporting-fact_train.txt
