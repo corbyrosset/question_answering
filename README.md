@@ -4,9 +4,15 @@ We trained various neural network models to answer tasks in the [Facebook bAbI d
 
 # Running our model
 
-To begin training a model, run the ipython notebook at `/code/notebooks/qa_experiment.ipynb`, or equivalently, the script at `/code/notebooks/qa_experiment.py`.
+The most basic way to run our model is to run the ipython notebook at `/code/notebooks/qa_experiment.ipynb`, or equivalently, the script at `/code/notebooks/qa_experiment.py`.
 
 The selection of model, and the hyperparameters, can be adjusted by changing the `hyperparams` data structure at the start of the file.
+
+The file can also be directly called:
+
+`python code/notebook/qa_experiment.py -task_num 1 -lr 1e-2 -model sentenceEmbedding -hd 128 -l2 0 -lstm_hd 128 -mp 0 -log logging_dir`
+
+We run many tests at once by changing `configs.py` (in the root directory) to specify a range of hyperparameters to grid search over, and then running `launch_jobs.py`, which will create a shell script for each set of hyperparameters, and launch them on a Stanford farmshare machine. 
 
 # Files
 ## /code/
