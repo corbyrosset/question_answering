@@ -203,31 +203,33 @@ def file_to_relevant_examples(file):
 
     return questans
 
+
 def tokenize(sentence):
     return [token.lower() for token in re.findall(r"[\w']+|[.,!?;]", sentence)]
 
+
 def get_file_path(datadir, tasknum, test=False):
     fnames = {
-        1:"single-supporting-fact",
-        2:"two-supporting-facts",
-        3:"three-supporting-facts",
-        4:"two-arg-relations",
-        5:"three-arg-relations",
-        6:"yes-no-questions",
-        7:"counting",
-        8:"lists-sets",
-        9:"simple-negation",
-        10:"indefinite-knowledge",
-        11:"basic-coreference",
-        12:"conjunction",
-        13:"compound-coreference",
-        14:"time-reasoning",
-        15:"basic-deduction",
-        16:"basic-induction",
-        17:"positional-reasoning",
-        18:"size-reasoning",
-        19:"path-finding",
-        20:"agents-motivations"
+        1: "single-supporting-fact",
+        2: "two-supporting-facts",
+        3: "three-supporting-facts",
+        4: "two-arg-relations",
+        5: "three-arg-relations",
+        6: "yes-no-questions",
+        7: "counting",
+        8: "lists-sets",
+        9: "simple-negation",
+        10: "indefinite-knowledge",
+        11: "basic-coreference",
+        12: "conjunction",
+        13: "compound-coreference",
+        14: "time-reasoning",
+        15: "basic-deduction",
+        16: "basic-induction",
+        17: "positional-reasoning",
+        18: "size-reasoning",
+        19: "path-finding",
+        20: "agents-motivations"
     }
     if(tasknum < 1 or tasknum > 20):
         raise NotImplementedError("Task %d is not valid" % tasknum)
@@ -236,10 +238,11 @@ def get_file_path(datadir, tasknum, test=False):
     fname = ("qa%d_%s_%s.txt") % (tasknum, fnames[tasknum], traintest)
     return datadir + fname
 
+
 def get_relevant_data(datadir, tasknum, test=False):
     train_examples = file_to_relevant_examples(get_file_path(datadir, tasknum, False))
     test_examples = file_to_relevant_examples(get_file_path(datadir, tasknum, True))
-    
+
     if tasknum == 19:
         # hack to replace directions with their actual words
         fix_directions(train_examples)
@@ -249,11 +252,12 @@ def get_relevant_data(datadir, tasknum, test=False):
         return train_examples, test_examples
     else:
         return train_examples, None
+
 
 def get_data(datadir, tasknum, test=False):
     train_examples = file_to_examples(get_file_path(datadir, tasknum, False))
     test_examples = file_to_examples(get_file_path(datadir, tasknum, True))
-    
+
     if tasknum == 19:
         # hack to replace directions with their actual words
         fix_directions(train_examples)
@@ -263,7 +267,6 @@ def get_data(datadir, tasknum, test=False):
         return train_examples, test_examples
     else:
         return train_examples, None
-
 
 
 @util.memoize
